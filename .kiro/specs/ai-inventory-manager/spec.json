@@ -2,27 +2,27 @@
   "feature_name": "ai-inventory-manager",
   "project_description": "AI機能付き個人持ち物管理Webアプリケーション - ユーザーが自分の持ち物を効率的にリスト化・管理でき、AI技術を活用した商品認識、価格比較、価格推移追跡機能を提供する包括的な在庫管理システム。",
   "created_at": "2025-07-21T10:53:00Z",
-  "updated_at": "2025-07-21T10:56:00Z",
+  "updated_at": "2025-07-21T12:30:00Z",
   "language": "japanese",
-  "phase": "requirements-generated",
+  "phase": "tasks-generated",
   "approvals": {
     "requirements": {
       "generated": true,
-      "approved": false
+      "approved": true
     },
     "design": {
-      "generated": false,
-      "approved": false
+      "generated": true,
+      "approved": true
     },
     "tasks": {
-      "generated": false,
+      "generated": true,
       "approved": false
     }
   },
   "progress": {
     "requirements": 100,
-    "design": 0,
-    "tasks": 0
+    "design": 100,
+    "tasks": 100
   },
   "ready_for_implementation": false
 }
