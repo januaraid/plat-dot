@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,73 +7,23 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ユーザーモデル
 model User {
-  id                String   @id @default(cuid())
-  email             String   @unique
-  name              String?
-  image             String?
-  subscriptionTier  String   @default("free") // free, premium
-  aiUsageCount      Int      @default(0)
-  aiUsageLimit      Int      @default(20)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  // NextAuth.js relations
-  accounts Account[]
-  sessions Session[]
-
-  // App relations
-  items    Item[]
-  folders  Folder[]
+  id               String    @id @default(cuid())
+  email            String    @unique
+  name             String?
+  image            String?
+  subscriptionTier String    @default("free")
+  aiUsageCount     Int       @default(0)
+  aiUsageLimit     Int       @default(20)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  folders          Folder[]
+  items            Item[]
 
   @@map("users")
 }
 
-// NextAuth.js Account model
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-  @@map("accounts")
-}
-
-// NextAuth.js Session model
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("sessions")
-}
-
-// NextAuth.js VerificationToken model
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
-  @@map("verificationtokens")
-}
-
-// フォルダモデル（3階層まで）
 model Folder {
   id          String   @id @default(cuid())
   name        String
@@ -85,19 +32,17 @@ model Folder {
   userId      String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  parent      Folder?  @relation("FolderHierarchy", fields: [parentId], references: [id])
+  children    Folder[] @relation("FolderHierarchy")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items       Item[]
 
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parent   Folder?   @relation("FolderHierarchy", fields: [parentId], references: [id])
-  children Folder[]  @relation("FolderHierarchy")
-  items    Item[]
-
-  @@unique([userId, name, parentId]) // 同一親フォルダ内で名前重複禁止
+  @@unique([userId, name, parentId])
   @@map("folders")
 }
 
-// アイテムモデル
 model Item {
-  id            String   @id @default(cuid())
+  id            String         @id @default(cuid())
   name          String
   description   String?
   category      String?
@@ -105,47 +50,42 @@ model Item {
   purchasePrice Decimal?
   folderId      String?
   userId        String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  folder       Folder?        @relation(fields: [folderId], references: [id])
-  images       ItemImage[]
-  priceHistory PriceHistory[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  images        ItemImage[]
+  folder        Folder?        @relation(fields: [folderId], references: [id])
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  priceHistory  PriceHistory[]
 
   @@map("items")
 }
 
-// アイテム画像モデル（最大10枚）
 model ItemImage {
   id       String @id @default(cuid())
   url      String
   filename String
   mimeType String
   size     Int
-  order    Int    @default(0) // 表示順序
+  order    Int    @default(0)
   itemId   String
+  item     Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
-  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
-
-  @@unique([itemId, order]) // 同一アイテム内で順序重複禁止
+  @@unique([itemId, order])
   @@map("item_images")
 }
 
-// 価格履歴モデル（AI価格検索・追跡用）
 model PriceHistory {
-  id          String   @id @default(cuid())
-  itemId      String
-  searchDate  DateTime @default(now())
-  source      String   // "mercari", "yahoo_auction", "rakuma"
-  minPrice    Decimal?
-  avgPrice    Decimal?
-  maxPrice    Decimal?
-  listingCount Int     @default(0)
-  searchQuery String?
-  isActive    Boolean  @default(true)
-
-  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  id           String   @id @default(cuid())
+  itemId       String
+  searchDate   DateTime @default(now())
+  source       String
+  minPrice     Decimal?
+  avgPrice     Decimal?
+  maxPrice     Decimal?
+  listingCount Int      @default(0)
+  searchQuery  String?
+  isActive     Boolean  @default(true)
+  item         Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   @@map("price_history")
 }
