@@ -4,11 +4,9 @@ import { z } from 'zod'
  * 画像アップロード時のバリデーションスキーマ
  */
 export const uploadImageSchema = z.object({
-  itemId: z.number()
-    .int()
-    .positive('有効なアイテムIDを指定してください'),
+  itemId: z.string(),
   
-  displayOrder: z.number()
+  order: z.number()
     .int()
     .min(0, '表示順序は0以上で指定してください')
     .max(9, '表示順序は9以下で指定してください')
@@ -52,9 +50,7 @@ export function validateImageFile(file: File): string | null {
  * 画像削除時のバリデーションスキーマ
  */
 export const deleteImageSchema = z.object({
-  imageId: z.string()
-    .regex(/^\d+$/, '有効な画像IDを指定してください')
-    .transform(Number),
+  imageId: z.string(),
 })
 
 /**
@@ -63,8 +59,8 @@ export const deleteImageSchema = z.object({
 export const updateImageOrderSchema = z.object({
   imageOrders: z.array(
     z.object({
-      imageId: z.number().int().positive(),
-      displayOrder: z.number().int().min(0).max(9),
+      imageId: z.string(),
+      order: z.number().int().min(0).max(9),
     })
   )
   .min(1, '更新する画像を指定してください')

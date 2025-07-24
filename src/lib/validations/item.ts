@@ -39,9 +39,7 @@ export const createItemSchema = z.object({
     .max(2000, 'メモは2000文字以内で入力してください')
     .optional(),
   
-  folderId: z.number()
-    .int()
-    .positive()
+  folderId: z.string()
     .optional(),
 })
 
@@ -54,9 +52,7 @@ export const updateItemSchema = createItemSchema.partial()
  * アイテムID パラメータのバリデーション
  */
 export const itemIdSchema = z.object({
-  id: z.string()
-    .regex(/^\d+$/, '有効なIDを指定してください')
-    .transform(Number),
+  id: z.string(),
 })
 
 /**
@@ -72,8 +68,6 @@ export const searchItemsSchema = z.object({
     .optional(),
   
   folderId: z.string()
-    .regex(/^\d+$/, '有効なフォルダIDを指定してください')
-    .transform(Number)
     .optional(),
   
   page: z.string()
