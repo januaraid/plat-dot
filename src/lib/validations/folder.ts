@@ -9,9 +9,7 @@ export const createFolderSchema = z.object({
     .max(100, 'フォルダ名は100文字以内で入力してください')
     .regex(/^[^/\\:*?"<>|]+$/, '使用できない文字が含まれています'),
   
-  parentId: z.number()
-    .int()
-    .positive()
+  parentId: z.string()
     .optional(),
 })
 
@@ -25,9 +23,7 @@ export const updateFolderSchema = z.object({
     .regex(/^[^/\\:*?"<>|]+$/, '使用できない文字が含まれています')
     .optional(),
   
-  parentId: z.number()
-    .int()
-    .positive()
+  parentId: z.string()
     .nullable()
     .optional(),
 })
@@ -36,9 +32,7 @@ export const updateFolderSchema = z.object({
  * フォルダID パラメータのバリデーション
  */
 export const folderIdSchema = z.object({
-  id: z.string()
-    .regex(/^\d+$/, '有効なIDを指定してください')
-    .transform(Number),
+  id: z.string(),
 })
 
 /**
@@ -46,8 +40,6 @@ export const folderIdSchema = z.object({
  */
 export const getFoldersSchema = z.object({
   parentId: z.string()
-    .regex(/^\d+$/, '有効な親フォルダIDを指定してください')
-    .transform(Number)
     .optional(),
   
   includeItemCount: z.string()
@@ -60,13 +52,11 @@ export const getFoldersSchema = z.object({
  * アイテム移動時のバリデーションスキーマ
  */
 export const moveItemsSchema = z.object({
-  itemIds: z.array(z.number().int().positive())
+  itemIds: z.array(z.string())
     .min(1, '移動するアイテムを選択してください')
     .max(100, '一度に移動できるアイテムは100個までです'),
   
-  targetFolderId: z.number()
-    .int()
-    .positive()
+  targetFolderId: z.string()
     .nullable(),
 })
 

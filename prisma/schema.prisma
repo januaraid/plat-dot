@@ -42,20 +42,23 @@ model Folder {
 }
 
 model Item {
-  id            String         @id @default(cuid())
-  name          String
-  description   String?
-  category      String?
-  purchaseDate  DateTime?
-  purchasePrice Decimal?
-  folderId      String?
-  userId        String
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  images        ItemImage[]
-  folder        Folder?        @relation(fields: [folderId], references: [id])
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  priceHistory  PriceHistory[]
+  id               String         @id @default(cuid())
+  name             String
+  description      String?
+  category         String?
+  purchaseDate     DateTime?
+  purchasePrice    Decimal?
+  purchaseLocation String?
+  condition        String?
+  notes            String?
+  folderId         String?
+  userId           String
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  images           ItemImage[]
+  folder           Folder?        @relation(fields: [folderId], references: [id])
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  priceHistory     PriceHistory[]
 
   @@map("items")
 }
