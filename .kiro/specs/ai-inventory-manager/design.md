@@ -27,7 +27,7 @@ graph TB
     
     subgraph "外部サービス（将来）"
         H[Google OAuth<br/>認証]
-        I[Vertex AI<br/>AI機能]
+        I[Vertex AI<br/>画像認識・Web検索]
     end
     
     A --> B
@@ -89,7 +89,7 @@ plat-dot/
     "@next-auth/prisma-adapter": "^1.0.7",
     "tailwindcss": "^3.4.0",
     "zod": "^3.22.0",
-    "@google-cloud/vertexai": "^1.0.0"
+    "@google-cloud/aiplatform": "^3.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
@@ -99,11 +99,11 @@ plat-dot/
 ```
 
 ### 将来的な拡張オプション
-- **AI機能**: Vertex AI (Gemini Pro Vision)
-- **価格検索**: Puppeteerスクレイピング
+- **AI機能**: Vertex AI (Gemini Pro Vision) - 画像認識と商品名推定
+- **価格検索**: Vertex AI Agent Builder - Web検索統合
 - **ファイルストレージ**: Cloud Storage
 - **デプロイ**: Vercel / Cloud Run
-- **監視**: Vercel Analytics
+- **監視**: Vercel Analytics / Cloud Monitoring
 
 ## コンポーネント設計
 
@@ -124,9 +124,9 @@ plat-dot/
 // ファイルアップロードAPI
 /api/upload                # POST: 画像アップロード
 
-// 将来的なAI API
-/api/ai/recognize          # POST: 画像認識
-/api/ai/search-prices      # POST: 価格検索
+// 将来的なAI API (Vertex AI)
+/api/ai/recognize          # POST: 画像認識 (Gemini Pro Vision)
+/api/ai/search-prices      # POST: 価格検索 (Agent Builder)
 ```
 
 ### API実装例
@@ -431,11 +431,11 @@ export async function GET() {
 }
 
 // src/lib/vertexai.ts
-import { VertexAI } from '@google-cloud/vertexai'
+import { VertexAI } from '@google-cloud/aiplatform'
 
 const vertex_ai = new VertexAI({
-  project: process.env.GOOGLE_CLOUD_PROJECT_ID,
-  location: 'us-central1'
+  project: process.env.GOOGLE_CLOUD_PROJECT,
+  location: process.env.VERTEX_AI_LOCATION || 'asia-northeast1'
 })
 
 export async function recognizeImage(imageBase64: string): Promise<string[]> {
@@ -899,13 +899,14 @@ describe('E2E: Item Creation with AI', () => {
 
 ### コスト見積もり（月額）
 - **Phase 1**: $30-50（小規模用途）
-- **Phase 2**: $60-100（AI機能追加、Vertex AI化で大幅削減）  
+- **Phase 2**: $50-80（AI機能追加、Vertex AI統一でコスト最適化）  
 - **Phase 3**: $150-350（商用サービス）
 - **スケーリング時**: 使用量に比例して線形増加
 
-### Vertex AI単一構成のメリット
-- **コスト削減**: OpenAIの約1/10のコスト
-- **GCP統合**: ネイティブサービス連携
-- **シンプル化**: API キー管理の簡素化
-- **レイテンシ向上**: 同一リージョン内通信
-- **セキュリティ**: VPC内完結可能
+### Vertex AI統一構成のメリット
+- **コスト削減**: 従来のマルチベンダー構成の約1/5のコスト
+- **GCP統合**: ネイティブサービス連携で運用簡素化
+- **統一管理**: 単一のサービスアカウントで全AI機能を管理
+- **レイテンシ向上**: asia-northeast1リージョンで日本国内通信
+- **セキュリティ**: VPC内完結、IAMによる細かなアクセス制御
+- **機能統合**: 画像認識からWeb検索まで一貫したAI体験
