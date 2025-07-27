@@ -296,6 +296,12 @@ export default function ItemsTestPage() {
           >
             再読み込み
           </button>
+          <a
+            href="/test/items/search"
+            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 inline-flex items-center"
+          >
+            詳細検索テストへ
+          </a>
         </div>
       </div>
 
