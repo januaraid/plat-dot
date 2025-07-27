@@ -36,12 +36,25 @@ export async function GET(request: NextRequest) {
       userId: dbUser.id,
     }
 
-    // 検索条件の追加
+    // 検索条件の追加（SQLite対応 - 大文字小文字区別なし）
     if (params.q) {
+      const searchTerm = params.q.toLowerCase()
       where.OR = [
-        { name: { contains: params.q, mode: 'insensitive' } },
-        { description: { contains: params.q, mode: 'insensitive' } },
-        { category: { contains: params.q, mode: 'insensitive' } },
+        { 
+          name: { 
+            contains: searchTerm 
+          } 
+        },
+        { 
+          description: { 
+            contains: searchTerm 
+          } 
+        },
+        { 
+          category: { 
+            contains: searchTerm 
+          } 
+        },
       ]
     }
 

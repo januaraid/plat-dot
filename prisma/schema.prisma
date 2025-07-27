@@ -60,6 +60,12 @@ model Item {
   user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   priceHistory     PriceHistory[]
 
+  @@index([userId])
+  @@index([userId, name])
+  @@index([userId, category])
+  @@index([userId, folderId])
+  @@index([userId, createdAt])
+  @@index([userId, updatedAt])
   @@map("items")
 }
 
