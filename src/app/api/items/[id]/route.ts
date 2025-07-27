@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { updateItemSchema, itemIdSchema, validationErrorResponse, errorResponse } from '@/lib/validations'
+import { 
+  updateItemSchema, 
+  itemIdSchema, 
+  validationErrorResponse, 
+  ErrorResponses, 
+  handleDatabaseError 
+} from '@/lib/validations'
 import { ZodError } from 'zod'
 import { Decimal } from 'decimal.js'
 import { ensureUserExists } from '@/lib/user-helper'
@@ -19,7 +25,7 @@ export async function GET(
     // 認証チェック
     const session = await auth()
     if (!session?.user?.email) {
-      return errorResponse('Unauthorized', 401)
+      return ErrorResponses.unauthorized()
     }
 
     // ユーザーをデータベースに確実に存在させる
@@ -62,17 +68,22 @@ export async function GET(
     })
 
     if (!item) {
-      return errorResponse('Item not found', 404)
+      return ErrorResponses.notFound('アイテム')
     }
 
     return NextResponse.json(item)
   } catch (error) {
     if (error instanceof ZodError) {
-      return validationErrorResponse(error)
+      return validationErrorResponse(error, 'アイテムIDの形式に誤りがあります')
+    }
+    
+    // データベースエラーの場合
+    if (error && typeof error === 'object' && 'code' in error) {
+      return handleDatabaseError(error)
     }
     
     console.error('GET /api/items/[id] error:', error)
-    return errorResponse('Internal server error', 500)
+    return ErrorResponses.internalError('アイテムの取得に失敗しました')
   }
 }
 
@@ -87,7 +98,7 @@ export async function PUT(
     // 認証チェック
     const session = await auth()
     if (!session?.user?.email) {
-      return errorResponse('Unauthorized', 401)
+      return ErrorResponses.unauthorized()
     }
 
     // ユーザーをデータベースに確実に存在させる
@@ -115,7 +126,7 @@ export async function PUT(
     })
 
     if (!existingItem) {
-      return errorResponse('Item not found', 404)
+      return ErrorResponses.notFound('アイテム')
     }
 
     // フォルダの存在確認（指定されている場合）
@@ -129,7 +140,7 @@ export async function PUT(
         })
 
         if (!folder) {
-          return errorResponse('Folder not found', 404)
+          return ErrorResponses.notFound('フォルダ')
         }
       }
     }
@@ -172,11 +183,16 @@ export async function PUT(
     return NextResponse.json(item)
   } catch (error) {
     if (error instanceof ZodError) {
-      return validationErrorResponse(error)
+      return validationErrorResponse(error, 'アイテムの更新データに誤りがあります')
+    }
+    
+    // データベースエラーの場合
+    if (error && typeof error === 'object' && 'code' in error) {
+      return handleDatabaseError(error)
     }
     
     console.error('PUT /api/items/[id] error:', error)
-    return errorResponse('Internal server error', 500)
+    return ErrorResponses.internalError('アイテムの更新に失敗しました')
   }
 }
 
@@ -191,7 +207,7 @@ export async function DELETE(
     // 認証チェック
     const session = await auth()
     if (!session?.user?.email) {
-      return errorResponse('Unauthorized', 401)
+      return ErrorResponses.unauthorized()
     }
 
     // ユーザーをデータベースに確実に存在させる
@@ -218,7 +234,7 @@ export async function DELETE(
     })
 
     if (!item) {
-      return errorResponse('Item not found', 404)
+      return ErrorResponses.notFound('アイテム')
     }
 
     // TODO: 画像ファイルの物理削除処理を追加
@@ -234,10 +250,15 @@ export async function DELETE(
     return NextResponse.json({ message: 'Item deleted successfully' })
   } catch (error) {
     if (error instanceof ZodError) {
-      return validationErrorResponse(error)
+      return validationErrorResponse(error, 'アイテムIDの形式に誤りがあります')
+    }
+    
+    // データベースエラーの場合
+    if (error && typeof error === 'object' && 'code' in error) {
+      return handleDatabaseError(error)
     }
     
     console.error('DELETE /api/items/[id] error:', error)
-    return errorResponse('Internal server error', 500)
+    return ErrorResponses.internalError('アイテムの削除に失敗しました')
   }
 }

@@ -16,6 +16,7 @@ This project implements Kiro-style Spec-Driven Development for Claude Code using
 
 ## Development Guidelines
 - Think in English, but generate responses in Japanese (思考は英語、回答の生成は日本語で行うように)
+- **Server Management Policy**: ユーザーがサーバー起動やBashコマンド実行を担当。Claude Codeは実装とコード作成に集中すること
 
 ## Spec-Driven Development Workflow
 

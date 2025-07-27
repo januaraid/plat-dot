@@ -302,6 +302,12 @@ export default function ItemsTestPage() {
           >
             詳細検索テストへ
           </a>
+          <a
+            href="/test/items/validation"
+            className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 inline-flex items-center"
+          >
+            バリデーションテストへ
+          </a>
         </div>
       </div>
 
