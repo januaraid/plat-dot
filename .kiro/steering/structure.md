@@ -5,191 +5,209 @@
 plat-dot/
 ├── .claude/                    # Claude Code設定
 │   └── commands/              # カスタムスラッシュコマンド
+│       └── kiro/              # Kiro開発コマンド
 ├── .kiro/                     # Kiro仕様駆動開発
 │   ├── steering/              # ステアリングドキュメント
 │   └── specs/                 # 機能仕様
-├── src/                       # ソースコード
-│   ├── client/               # フロントエンドコード
-│   ├── server/               # バックエンドコード
-│   └── shared/               # 共有コード
+├── prisma/                    # Prismaデータベース設定
+│   ├── migrations/            # データベースマイグレーション
+│   ├── schema.prisma          # データベーススキーマ定義
+│   └── seed.ts                # シードデータ
 ├── public/                    # 静的ファイル
-├── tests/                     # テストコード
-├── scripts/                   # ビルド・デプロイスクリプト
-├── docker/                    # Docker設定
-├── docs/                      # プロジェクトドキュメント
-├── .env.example              # 環境変数テンプレート
-├── .gitignore                # Git除外設定
-├── docker-compose.yml        # Docker Compose設定
-├── package.json              # プロジェクト設定
-├── tsconfig.json             # TypeScript設定
-├── CLAUDE.md                 # Claude Code指示書
-└── README.md                 # プロジェクト説明
+├── src/                       # ソースコード
+│   ├── app/                   # Next.js App Router
+│   ├── components/            # Reactコンポーネント
+│   ├── lib/                   # ユーティリティ・ヘルパー
+│   ├── types/                 # TypeScript型定義
+│   └── middleware.ts          # Next.jsミドルウェア
+├── .env.local                 # ローカル環境変数
+├── .gitignore                 # Git除外設定
+├── next.config.js             # Next.js設定
+├── package.json               # プロジェクト設定
+├── postcss.config.js          # PostCSS設定
+├── tailwind.config.ts         # Tailwind CSS設定
+├── tsconfig.json              # TypeScript設定
+└── CLAUDE.md                  # Claude Code指示書
 ```
 
 ## Subdirectory Structures
 
-### Frontend Structure (`src/client/`)
+### App Router Structure (`src/app/`)
 ```
-src/client/
-├── components/               # Reactコンポーネント
-│   ├── common/              # 共通コンポーネント
-│   ├── features/            # 機能別コンポーネント
-│   │   ├── items/          # アイテム管理
-│   │   ├── folders/        # フォルダ管理
-│   │   ├── ai/             # AI機能
-│   │   └── auth/           # 認証
-│   └── layouts/             # レイアウトコンポーネント
-├── hooks/                   # カスタムフック
-├── store/                   # 状態管理
-│   ├── slices/             # Redux slices
-│   └── api/                # RTK Query API定義
-├── styles/                  # グローバルスタイル
-├── utils/                   # ユーティリティ関数
-├── types/                   # TypeScript型定義
-└── pages/                   # ページコンポーネント
-```
-
-### Backend Structure (`src/server/`)
-```
-src/server/
-├── api/                     # APIエンドポイント
-│   ├── routes/             # ルート定義
-│   ├── controllers/        # コントローラー
-│   ├── middlewares/        # ミドルウェア
-│   └── validators/         # リクエスト検証
-├── services/               # ビジネスロジック
-│   ├── auth/              # 認証サービス
-│   ├── items/             # アイテム管理
-│   ├── ai/                # AI統合
-│   ├── pricing/           # 価格追跡
-│   └── storage/           # ファイルストレージ
-├── models/                 # データモデル
-├── db/                     # データベース設定
-│   ├── migrations/        # マイグレーション
-│   └── seeds/             # シードデータ
-├── jobs/                   # バックグラウンドジョブ
-├── utils/                  # ユーティリティ
-└── config/                 # 設定ファイル
+src/app/
+├── api/                      # API Route Handlers
+│   ├── auth/                 # 認証エンドポイント
+│   │   ├── [...nextauth]/   # NextAuth.js動的ルート
+│   │   └── session/         # セッション管理
+│   ├── items/               # アイテム管理API
+│   │   ├── [id]/            # 個別アイテム操作
+│   │   └── route.ts         # アイテム一覧・作成
+│   └── test/                # テスト用エンドポイント
+├── auth/                    # 認証関連ページ
+│   ├── signin/              # サインインページ
+│   └── error/               # 認証エラーページ
+├── test/                    # テストページ（開発用）
+│   └── items/               # アイテム管理テスト
+├── debug/                   # デバッグページ（開発用）
+├── globals.css              # グローバルスタイル
+├── layout.tsx               # ルートレイアウト
+└── page.tsx                 # ホームページ
 ```
 
-### Shared Structure (`src/shared/`)
+### Components Structure (`src/components/`)
 ```
-src/shared/
-├── types/                  # 共有型定義
-├── constants/              # 定数定義
-├── schemas/                # Zodスキーマ
-└── utils/                  # 共有ユーティリティ
+src/components/
+└── providers/               # Contextプロバイダー
+    └── SessionProvider.tsx  # NextAuth セッションプロバイダー
+```
+
+### Library Structure (`src/lib/`)
+```
+src/lib/
+├── auth.ts                  # NextAuth設定
+├── db.ts                    # データベース接続ヘルパー
+├── prisma.ts                # Prismaクライアント
+├── rate-limit.ts            # レート制限ユーティリティ
+├── security.ts              # セキュリティユーティリティ
+├── user-helper.ts           # ユーザー関連ヘルパー
+├── utils.ts                 # 汎用ユーティリティ
+└── validations/             # Zodバリデーションスキーマ
+    ├── index.ts             # エクスポート集約
+    ├── item.ts              # アイテムバリデーション
+    ├── folder.ts            # フォルダバリデーション
+    ├── upload.ts            # アップロードバリデーション
+    └── user.ts              # ユーザーバリデーション
 ```
 
 ## Code Organization Patterns
 
-### Component Organization
-- **Atomic Design**: atoms → molecules → organisms → templates → pages
-- **Feature-based**: 機能ごとにコンポーネントをグループ化
-- **Co-location**: コンポーネントと関連ファイルを同じディレクトリに配置
+### Next.js App Router Patterns
+- **Server Components**: デフォルトで使用、データフェッチとレンダリング
+- **Client Components**: `'use client'`ディレクティブで明示的に指定
+- **Route Handlers**: `app/api/`内の`route.ts`ファイルでAPI定義
+- **Co-location**: 関連ファイルを同じディレクトリに配置
 
-### Service Layer Pattern
+### API Route Handler Pattern
 ```typescript
-// services/items/itemService.ts
-export class ItemService {
-  async createItem(data: CreateItemDto): Promise<Item>
-  async updateItem(id: string, data: UpdateItemDto): Promise<Item>
-  async deleteItem(id: string): Promise<void>
-  async getItems(filters: ItemFilters): Promise<PaginatedItems>
+// app/api/items/route.ts
+import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@/lib/auth'
+import { itemSchema } from '@/lib/validations'
+
+export async function GET(request: NextRequest) {
+  const session = await auth()
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  // ビジネスロジック
+}
+
+export async function POST(request: NextRequest) {
+  const session = await auth()
+  const body = await request.json()
+  const validated = itemSchema.parse(body)
+  // ビジネスロジック
 }
 ```
 
-### API Route Pattern
+### Prisma Data Access Pattern
 ```typescript
-// api/routes/items.ts
-router.post('/items', validate(createItemSchema), itemController.create)
-router.put('/items/:id', validate(updateItemSchema), itemController.update)
-router.delete('/items/:id', authenticate, itemController.delete)
-router.get('/items', paginate, itemController.list)
+// lib/db.ts
+import { prisma } from '@/lib/prisma'
+
+export async function getItemsByUserId(userId: string) {
+  return prisma.item.findMany({
+    where: { userId },
+    include: { folder: true },
+    orderBy: { createdAt: 'desc' }
+  })
+}
 ```
 
 ## File Naming Conventions
 
 ### General Rules
-- **ファイル名**: kebab-case（例: `item-service.ts`）
-- **コンポーネント**: PascalCase（例: `ItemCard.tsx`）
-- **フック**: camelCase with 'use' prefix（例: `useItems.ts`）
-- **定数**: UPPER_SNAKE_CASE（例: `API_ENDPOINTS.ts`）
-- **型定義**: PascalCase with suffix（例: `ItemType.ts`）
+- **ファイル名**: kebab-case（例: `user-helper.ts`）
+- **コンポーネント**: PascalCase（例: `SessionProvider.tsx`）
+- **API Routes**: `route.ts`（固定）
+- **レイアウト**: `layout.tsx`（固定）
+- **ページ**: `page.tsx`（固定）
+- **型定義**: kebab-case（例: `next-auth.d.ts`）
 
-### Specific Patterns
+### Next.js App Router特有のパターン
 ```
-components/items/ItemCard.tsx          # コンポーネント
-components/items/ItemCard.test.tsx     # テスト
-components/items/ItemCard.module.css   # スタイル
-hooks/useItemManagement.ts             # カスタムフック
-services/item-service.ts               # サービス
-types/item.types.ts                    # 型定義
-utils/format-price.ts                  # ユーティリティ
+app/items/page.tsx                     # アイテム一覧ページ
+app/items/[id]/page.tsx                # アイテム詳細ページ
+app/api/items/route.ts                 # アイテムAPI（一覧・作成）
+app/api/items/[id]/route.ts            # アイテムAPI（個別操作）
+components/providers/SessionProvider.tsx # プロバイダーコンポーネント
+lib/validations/item.ts                # バリデーションスキーマ
+types/next-auth.d.ts                   # 型定義拡張
 ```
 
 ## Import Organization
 
 ### Import Order
 ```typescript
-// 1. 外部ライブラリ
-import React, { useState, useEffect } from 'react'
-import { useDispatch } from 'react-redux'
-import axios from 'axios'
+// 1. Next.js関連
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
 
-// 2. 内部エイリアス
-import { Button } from '@/components/common'
-import { useAuth } from '@/hooks'
-import { ItemService } from '@/services'
+// 2. 外部ライブラリ
+import { z } from 'zod'
+import { Prisma } from '@prisma/client'
 
-// 3. 相対インポート
-import { ItemCard } from './ItemCard'
-import { formatPrice } from '../utils'
+// 3. 内部エイリアス（@/）
+import { auth } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
+import { itemSchema } from '@/lib/validations'
 
-// 4. 型定義
-import type { Item, ItemFilters } from '@/types'
+// 4. 相対インポート
+import { formatDate } from '../utils'
+
+// 5. 型定義
+import type { Item, User } from '@prisma/client'
 ```
 
-### Path Aliases
+### Path Aliases (tsconfig.json)
 ```json
 {
-  "@/components/*": ["src/client/components/*"],
-  "@/hooks/*": ["src/client/hooks/*"],
-  "@/services/*": ["src/server/services/*"],
-  "@/types/*": ["src/shared/types/*"],
-  "@/utils/*": ["src/shared/utils/*"]
+  "paths": {
+    "@/*": ["./src/*"]
+  }
 }
 ```
 
 ## Key Architectural Principles
 
-### 1. Separation of Concerns
-- **Presentation**: Reactコンポーネント（UI表示）
-- **Business Logic**: サービス層（ビジネスルール）
-- **Data Access**: リポジトリパターン（データベースアクセス）
+### 1. Next.js App Router Best Practices
+- **Server Components優先**: クライアントサイドJSを最小限に
+- **データフェッチ**: Server Components内で直接実行
+- **キャッシング**: Next.jsの自動キャッシング活用
+- **ストリーミング**: Suspenseとローディング状態の活用
 
-### 2. Single Responsibility
-- 各モジュールは単一の責任を持つ
-- コンポーネントは表示に専念
-- サービスはビジネスロジックに専念
+### 2. 認証とセキュリティ
+- **NextAuth.js**: 統一された認証フロー
+- **セッション管理**: サーバーサイドセッション
+- **API保護**: すべてのAPIルートで認証チェック
+- **レート制限**: API乱用防止
 
-### 3. Dependency Injection
-- サービスは依存性注入で提供
-- テスタビリティの向上
-- 疎結合な設計
+### 3. データアクセス層
+- **Prisma ORM**: 型安全なデータベースアクセス
+- **トランザクション**: 複数操作の整合性保証
+- **最適化**: includeとselectで必要なデータのみ取得
 
 ### 4. Type Safety
-- TypeScript厳密モード
-- Zodによるランタイム検証
-- 型の単一定義源
+- **TypeScript厳密モード**: 型安全性の最大化
+- **Zodバリデーション**: ランタイム型検証
+- **Prisma型生成**: データベーススキーマから自動生成
 
 ### 5. Error Handling
-- グローバルエラーハンドラー
-- カスタムエラークラス
-- ユーザーフレンドリーなエラーメッセージ
+- **try-catchパターン**: 各APIルートで適切なエラーハンドリング
+- **HTTPステータスコード**: 適切なステータスコードの返却
+- **エラーメッセージ**: ユーザーフレンドリーなメッセージ
 
-### 6. Performance Optimization
-- 遅延読み込み
-- メモ化
-- 仮想スクロール
-- 画像最適化
+### 6. 開発効率
+- **ホットリロード**: Next.js開発サーバー
+- **型チェック**: TypeScriptによる開発時エラー検出
+- **Prisma Studio**: GUIでのデータベース操作

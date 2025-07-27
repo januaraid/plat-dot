@@ -12,7 +12,7 @@ This project implements Kiro-style Spec-Driven Development for Claude Code using
 
 ### Active Specifications
 - Current spec: Check `.kiro/specs/` for active specifications
-- Use `/spec-status [feature-name]` to check progress
+- Use `/kiro:spec-status [feature-name]` to check progress
 
 ## Development Guidelines
 - Think in English, but generate responses in Japanese (思考は英語、回答の生成は日本語で行うように)
@@ -23,24 +23,26 @@ This project implements Kiro-style Spec-Driven Development for Claude Code using
 
 #### Kiro Steering (`.kiro/steering/`)
 ```
-/steering-init          # Generate initial steering documents
-/steering-update        # Update steering after changes
-/steering-custom        # Create custom steering for specialized contexts
+/kiro:steering               # Intelligently create or update steering documents
+/kiro:steering-custom        # Create custom steering for specialized contexts
 ```
+
+**Steering Management:**
+- **`/kiro:steering`**: Unified command that intelligently detects existing files and handles them appropriately. Creates new files if needed, updates existing ones while preserving user customizations.
 
 **Note**: For new features or empty projects, steering is recommended but not required. You can proceed directly to spec-requirements if needed.
 
 ### Phase 1: Specification Creation
 ```
-/spec-init [feature-name]           # Initialize spec structure only
-/spec-requirements [feature-name]   # Generate requirements → Review → Edit if needed
-/spec-design [feature-name]         # Generate technical design → Review → Edit if needed
-/spec-tasks [feature-name]          # Generate implementation tasks → Review → Edit if needed
+/kiro:spec-init [feature-name]           # Initialize spec structure only
+/kiro:spec-requirements [feature-name]   # Generate requirements → Review → Edit if needed
+/kiro:spec-design [feature-name]         # Generate technical design → Review → Edit if needed
+/kiro:spec-tasks [feature-name]          # Generate implementation tasks → Review → Edit if needed
 ```
 
 ### Phase 2: Progress Tracking
 ```
-/spec-status [feature-name]         # Check current progress and phases
+/kiro:spec-status [feature-name]         # Check current progress and phases
 ```
 
 ## Spec-Driven Development Workflow
@@ -48,19 +50,19 @@ This project implements Kiro-style Spec-Driven Development for Claude Code using
 Kiro's spec-driven development follows a strict **3-phase approval workflow**:
 
 ### Phase 1: Requirements Generation & Approval
-1. **Generate**: `/spec-requirements [feature-name]` - Generate requirements document
+1. **Generate**: `/kiro:spec-requirements [feature-name]` - Generate requirements document
 2. **Review**: Human reviews `requirements.md` and edits if needed
-3. **Approve**: Manually update `spec.json` to set `"requirements": true`
+3. **Approve**: See Phase 2 for streamlined approval
 
 ### Phase 2: Design Generation & Approval
-1. **Generate**: `/spec-design [feature-name]` - Generate technical design (requires requirements approval)
-2. **Review**: Human reviews `design.md` and edits if needed
-3. **Approve**: Manually update `spec.json` to set `"design": true`
+1. **Generate**: `/kiro:spec-design [feature-name]` - Interactive approval prompt appears
+2. **Review confirmation**: "requirements.mdをレビューしましたか？ [y/N]"
+3. **Approve**: Reply 'y' to approve and proceed, or manually update `spec.json`
 
 ### Phase 3: Tasks Generation & Approval
-1. **Generate**: `/spec-tasks [feature-name]` - Generate implementation tasks (requires design approval)
-2. **Review**: Human reviews `tasks.md` and edits if needed
-3. **Approve**: Manually update `spec.json` to set `"tasks": true`
+1. **Generate**: `/kiro:spec-tasks [feature-name]` - Interactive approval prompts appear
+2. **Review confirmation**: Confirms both requirements and design have been reviewed
+3. **Approve**: Reply 'y' to approve all phases, or manually update `spec.json`
 
 ### Implementation
 Only after all three phases are approved can implementation begin.
@@ -69,13 +71,13 @@ Only after all three phases are approved can implementation begin.
 
 ## Development Rules
 
-1. **Consider steering**: Run `/steering-init` before major development (optional for new features)
+1. **Consider steering**: Run `/kiro:steering` before major development (optional for new features)
 2. **Follow the 3-phase approval workflow**: Requirements → Design → Tasks → Implementation
-3. **Manual approval required**: Each phase must be explicitly approved by human review
+3. **Approval required**: Each phase requires human review (interactive prompt or manual)
 4. **No skipping phases**: Design requires approved requirements; Tasks require approved design
 5. **Update task status**: Mark tasks as completed when working on them
-6. **Keep steering current**: Run `/steering-update` after significant changes
-7. **Check spec compliance**: Use `/spec-status` to verify alignment
+6. **Keep steering current**: Run `/kiro:steering` after significant changes
+7. **Check spec compliance**: Use `/kiro:spec-status` to verify alignment
 
 ## Automation
 
@@ -89,14 +91,14 @@ This project uses Claude Code hooks to:
 
 When working on implementation:
 1. **Manual tracking**: Update tasks.md checkboxes manually as you complete tasks
-2. **Progress monitoring**: Use `/spec-status` to view current completion status
+2. **Progress monitoring**: Use `/kiro:spec-status` to view current completion status
 3. **TodoWrite integration**: Use TodoWrite tool to track active work items
 4. **Status visibility**: Checkbox parsing shows completion percentage
 
 ## Getting Started
 
-1. Initialize steering documents: `/steering-init`
-2. Create your first spec: `/spec-init [your-feature-name]`
+1. Initialize steering documents: `/kiro:steering`
+2. Create your first spec: `/kiro:spec-init [your-feature-name]`
 3. Follow the workflow through requirements, design, and tasks
 
 ## Kiro Steering Details
@@ -122,3 +124,27 @@ Create specialized steering documents for:
 - **Always Included**: Loaded in every interaction (default)
 - **Conditional**: Loaded for specific file patterns (e.g., `"*.test.js"`)
 - **Manual**: Loaded on-demand with `#filename` reference
+
+## Kiro Steering Configuration
+
+### Current Steering Files
+The `/kiro:steering` command manages these files automatically. Manual updates to this section reflect changes made through steering commands.
+
+### Active Steering Files
+- `product.md`: Always included - Product context and business objectives
+- `tech.md`: Always included - Technology stack and architectural decisions  
+- `structure.md`: Always included - File organization and code patterns
+
+### Custom Steering Files
+<!-- Added by /kiro:steering-custom command -->
+<!-- Example entries:
+- `api-standards.md`: Conditional - `"src/api/**/*"`, `"**/*api*"` - API design guidelines
+- `testing-approach.md`: Conditional - `"**/*.test.*"`, `"**/spec/**/*"` - Testing conventions
+- `security-policies.md`: Manual - Security review guidelines (reference with @security-policies.md)
+-->
+
+### Usage Notes
+- **Always files**: Automatically loaded in every interaction
+- **Conditional files**: Loaded when working on matching file patterns
+- **Manual files**: Reference explicitly with `@filename.md` syntax when needed
+- **Updating**: Use `/kiro:steering` or `/kiro:steering-custom` commands to modify this configuration
