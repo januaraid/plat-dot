@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { createItemSchema, searchItemsSchema, validationErrorResponse, errorResponse } from '@/lib/validations'
+import { 
+  createItemSchema, 
+  searchItemsSchema, 
+  validationErrorResponse, 
+  ErrorResponses,
+  handleDatabaseError
+} from '@/lib/validations'
 import { ZodError } from 'zod'
 import { Decimal } from 'decimal.js'
 import { ensureUserExists } from '@/lib/user-helper'
@@ -16,7 +22,7 @@ export async function GET(request: NextRequest) {
     // 認証チェック
     const session = await auth()
     if (!session?.user?.email) {
-      return errorResponse('Unauthorized', 401)
+      return ErrorResponses.unauthorized()
     }
 
     // ユーザーをデータベースに確実に存在させる
@@ -114,11 +120,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(response)
   } catch (error) {
     if (error instanceof ZodError) {
-      return validationErrorResponse(error)
+      return validationErrorResponse(error, 'アイテム検索のパラメータに誤りがあります')
+    }
+    
+    // データベースエラーの場合
+    if (error && typeof error === 'object' && 'code' in error) {
+      return handleDatabaseError(error)
     }
     
     console.error('GET /api/items error:', error)
-    return errorResponse('Internal server error', 500)
+    return ErrorResponses.internalError('アイテムの取得に失敗しました')
   }
 }
 
@@ -130,7 +141,7 @@ export async function POST(request: NextRequest) {
     // 認証チェック
     const session = await auth()
     if (!session?.user?.email) {
-      return errorResponse('Unauthorized', 401)
+      return ErrorResponses.unauthorized()
     }
 
     // ユーザーをデータベースに確実に存在させる
@@ -155,7 +166,7 @@ export async function POST(request: NextRequest) {
       })
 
       if (!folder) {
-        return errorResponse('Folder not found', 404)
+        return ErrorResponses.notFound('フォルダ')
       }
     }
 
@@ -193,7 +204,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(item, { status: 201 })
   } catch (error) {
     if (error instanceof ZodError) {
-      return validationErrorResponse(error)
+      return validationErrorResponse(error, 'アイテムの作成データに誤りがあります')
+    }
+    
+    // データベースエラーの場合
+    if (error && typeof error === 'object' && 'code' in error) {
+      return handleDatabaseError(error)
     }
     
     console.error('POST /api/items error:', error)
@@ -202,9 +218,6 @@ export async function POST(request: NextRequest) {
       stack: error instanceof Error ? error.stack : undefined,
     })
     
-    return errorResponse(
-      error instanceof Error ? error.message : 'Internal server error', 
-      500
-    )
+    return ErrorResponses.internalError('アイテムの作成に失敗しました')
   }
 }
