@@ -179,9 +179,16 @@ export const searchItemsSchema = z.object({
     .optional(),
   
   folderId: z.string()
-    .uuid('有効なフォルダIDを指定してください')
-    .optional()
-    .or(z.literal('')),
+    .transform(val => val?.trim())
+    .refine(val => {
+      if (val === '' || val === undefined) return true
+      // UUIDまたはcuid形式のIDを許可
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+      const cuidRegex = /^c[a-z0-9]{24,}$/i
+      return uuidRegex.test(val) || cuidRegex.test(val)
+    }, '有効なフォルダIDを指定してください')
+    .transform(val => val === '' ? undefined : val)
+    .optional(),
   
   page: z.union([
     z.string().regex(/^\d+$/, '有効なページ番号を指定してください').transform(Number),

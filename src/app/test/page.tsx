@@ -32,6 +32,19 @@ export default function TestIndexPage() {
           </div>
         </Link>
         
+        <Link 
+          href="/test/items/folders" 
+          className="block bg-white shadow rounded-lg p-6 hover:shadow-lg transition-shadow"
+        >
+          <h2 className="text-xl font-semibold mb-2">アイテム・フォルダ関連</h2>
+          <p className="text-gray-600">
+            アイテムのフォルダ移動、未分類管理機能をテストできます。
+          </p>
+          <div className="mt-4 text-sm text-blue-500">
+            → テストページを開く
+          </div>
+        </Link>
+        
         <div className="bg-gray-100 shadow rounded-lg p-6">
           <h2 className="text-xl font-semibold mb-2 text-gray-500">画像アップロードAPI</h2>
           <p className="text-gray-500">
@@ -75,6 +88,16 @@ export default function TestIndexPage() {
                 <li>• <code>GET /api/folders/[id]</code> - 単一フォルダ取得</li>
                 <li>• <code>PUT /api/folders/[id]</code> - フォルダ更新（循環参照チェック）</li>
                 <li>• <code>DELETE /api/folders/[id]</code> - フォルダ削除（アイテム移動処理）</li>
+                <li>• <code>POST /api/folders/move</code> - フォルダ移動（階層制限・循環参照チェック）</li>
+                <li>• <code>GET /api/folders/tree</code> - フォルダツリー取得（階層構造・統計情報）</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-medium text-gray-800">アイテム・フォルダ関連API:</h4>
+              <ul className="text-gray-600 space-y-1 ml-4">
+                <li>• <code>POST /api/items/move</code> - アイテムのフォルダ移動</li>
+                <li>• <code>GET /api/folders/[id]/items</code> - フォルダ内アイテム一覧取得</li>
+                <li>• <code>GET /api/items/uncategorized</code> - 未分類アイテム一覧取得（統計情報付き）</li>
               </ul>
             </div>
           </div>
