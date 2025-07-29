@@ -45,15 +45,18 @@ export default function TestIndexPage() {
           </div>
         </Link>
         
-        <div className="bg-gray-100 shadow rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-2 text-gray-500">画像アップロードAPI</h2>
-          <p className="text-gray-500">
-            画像アップロード機能は今後実装予定です。
+        <Link 
+          href="/test/upload" 
+          className="block bg-white shadow rounded-lg p-6 hover:shadow-lg transition-shadow"
+        >
+          <h2 className="text-xl font-semibold mb-2">画像アップロードAPI</h2>
+          <p className="text-gray-600">
+            画像のアップロード、ファイル検証機能をテストできます。
           </p>
-          <div className="mt-4 text-sm text-gray-400">
-            Coming soon...
+          <div className="mt-4 text-sm text-blue-500">
+            → テストページを開く
           </div>
-        </div>
+        </Link>
       </div>
       
       <div className="mt-12 bg-white shadow rounded-lg p-6">
@@ -98,6 +101,14 @@ export default function TestIndexPage() {
                 <li>• <code>POST /api/items/move</code> - アイテムのフォルダ移動</li>
                 <li>• <code>GET /api/folders/[id]/items</code> - フォルダ内アイテム一覧取得</li>
                 <li>• <code>GET /api/items/uncategorized</code> - 未分類アイテム一覧取得（統計情報付き）</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-medium text-gray-800">画像アップロードAPI:</h4>
+              <ul className="text-gray-600 space-y-1 ml-4">
+                <li>• <code>POST /api/upload</code> - 画像アップロード（形式・サイズ検証付き）</li>
+                <li>• <code>GET /api/upload</code> - アップロード設定情報取得</li>
+                <li>• <code>GET /api/uploads/[fileName]</code> - アップロード済み画像取得</li>
               </ul>
             </div>
           </div>
