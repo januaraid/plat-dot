@@ -308,6 +308,12 @@ export default function ItemsTestPage() {
           >
             バリデーションテストへ
           </a>
+          <a
+            href="/test/items/folders"
+            className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600 inline-flex items-center"
+          >
+            フォルダ関連テストへ
+          </a>
         </div>
       </div>
 
