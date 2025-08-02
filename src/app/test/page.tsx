@@ -1,6 +1,29 @@
+'use client'
+
+import { useEffect } from 'react'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 export default function TestIndexPage() {
+  const { data: session, status } = useSession()
+  const router = useRouter()
+
+  // 未ログインの場合はトップページにリダイレクト
+  useEffect(() => {
+    if (status !== 'loading' && (!session || !session.hasSession)) {
+      router.replace('/')
+    }
+  }, [session, status, router])
+
+  // 認証チェック中はローディング表示
+  if (status === 'loading' || !session || !session.hasSession) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
   return (
     <div className="container mx-auto p-8">
       <h1 className="text-3xl font-bold mb-8">API テストページ</h1>

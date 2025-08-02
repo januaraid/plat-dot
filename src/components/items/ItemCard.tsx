@@ -33,9 +33,11 @@ interface ItemCardProps {
   item: Item
   viewMode?: 'grid' | 'list'
   onClick?: (item: Item) => void
+  onDragStart?: (item: Item) => void
+  onDragEnd?: () => void
 }
 
-export function ItemCard({ item, viewMode = 'grid', onClick }: ItemCardProps) {
+export function ItemCard({ item, viewMode = 'grid', onClick, onDragStart, onDragEnd }: ItemCardProps) {
   const [imageError, setImageError] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
 
@@ -56,6 +58,20 @@ export function ItemCard({ item, viewMode = 'grid', onClick }: ItemCardProps) {
     }
   }
 
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData('application/json', JSON.stringify(item))
+    e.dataTransfer.effectAllowed = 'move'
+    if (onDragStart) {
+      onDragStart(item)
+    }
+  }
+
+  const handleDragEnd = () => {
+    if (onDragEnd) {
+      onDragEnd()
+    }
+  }
+
   if (viewMode === 'list') {
     return (
       <div
@@ -63,6 +79,9 @@ export function ItemCard({ item, viewMode = 'grid', onClick }: ItemCardProps) {
         onClick={handleCardClick}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
+        draggable={!!onDragStart}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
       >
         <div className="flex p-4 space-x-4">
           {/* Image */}
@@ -145,6 +164,9 @@ export function ItemCard({ item, viewMode = 'grid', onClick }: ItemCardProps) {
       onClick={handleCardClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      draggable={!!onDragStart}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
     >
       {/* Image */}
       <div className="aspect-square bg-gray-100 relative overflow-hidden">

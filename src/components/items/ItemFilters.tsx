@@ -30,6 +30,7 @@ export function ItemFilters({
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [searchValue, setSearchValue] = useState(filters.search)
 
+
   // Debounced search
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -46,11 +47,12 @@ export function ItemFilters({
   }, [searchValue, filters, onFiltersChange])
 
   const handleFilterChange = (key: keyof FilterOptions, value: any) => {
-    onFiltersChange({
+    const newFilters = {
       ...filters,
       [key]: value,
       page: 1, // Reset to first page when filtering
-    })
+    }
+    onFiltersChange(newFilters)
   }
 
   const clearFilters = () => {
@@ -89,19 +91,19 @@ export function ItemFilters({
       </div>
 
       {/* Filter controls */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
+      <div className="space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-between">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center">
           {/* Filter toggle button */}
           <button
             onClick={() => setIsFilterOpen(!isFilterOpen)}
-            className={`inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+            className={`inline-flex items-center justify-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
               hasActiveFilters ? 'ring-2 ring-blue-500 border-blue-500' : ''
             }`}
           >
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
             </svg>
-            フィルター
+            <span className="whitespace-nowrap">フィルター</span>
             {hasActiveFilters && (
               <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                 適用中
@@ -110,8 +112,8 @@ export function ItemFilters({
           </button>
 
           {/* Sort selector */}
-          <div className="flex items-center space-x-2">
-            <label className="text-sm font-medium text-gray-700">並び順:</label>
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700 whitespace-nowrap hidden sm:block">並び順:</label>
             <select
               value={`${filters.sortBy}-${filters.sortOrder}`}
               onChange={(e) => {
@@ -119,7 +121,7 @@ export function ItemFilters({
                 handleFilterChange('sortBy', sortBy)
                 handleFilterChange('sortOrder', sortOrder)
               }}
-              className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              className="flex-1 sm:flex-none border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
               disabled={loading}
             >
               <option value="createdAt-desc">作成日時（新しい順）</option>
@@ -138,7 +140,7 @@ export function ItemFilters({
         {hasActiveFilters && (
           <button
             onClick={clearFilters}
-            className="text-sm text-gray-500 hover:text-gray-700 underline"
+            className="text-sm text-gray-500 hover:text-gray-700 underline sm:ml-4"
           >
             フィルターをクリア
           </button>
@@ -235,16 +237,21 @@ export function ResultsCounter({
     )
   }
 
-  const startItem = (currentPage - 1) * itemsPerPage + 1
-  const endItem = Math.min(currentPage * itemsPerPage, total)
+  // 安全な値処理
+  const safeTotal = Math.max(0, total || 0)
+  const safePage = Math.max(1, currentPage || 1)
+  const safeLimit = Math.max(1, itemsPerPage || 24)
+
+  const startItem = (safePage - 1) * safeLimit + 1
+  const endItem = Math.min(safePage * safeLimit, safeTotal)
 
   return (
     <p className="text-sm text-gray-700">
-      {total === 0 ? (
+      {safeTotal === 0 ? (
         'アイテムが見つかりませんでした'
       ) : (
         <>
-          {startItem}-{endItem}件を表示 (全{total}件)
+          {Math.max(1, startItem)}-{Math.max(1, endItem)}件を表示 (全{safeTotal}件)
         </>
       )}
     </p>

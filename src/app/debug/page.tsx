@@ -2,9 +2,18 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 
 export default function DebugPage() {
   const { data: session, status } = useSession()
+  const router = useRouter()
+
+  // 未ログインの場合はトップページにリダイレクト
+  useEffect(() => {
+    if (status !== 'loading' && (!session || !session.hasSession)) {
+      router.replace('/')
+    }
+  }, [session, status, router])
   const [debugResult, setDebugResult] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
