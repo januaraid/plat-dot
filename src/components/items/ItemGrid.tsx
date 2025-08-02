@@ -12,6 +12,8 @@ interface ItemGridProps {
   columns?: GridColumns
   loading?: boolean
   onItemClick?: (item: Item) => void
+  onItemDragStart?: (item: Item) => void
+  onItemDragEnd?: () => void
   emptyStateMessage?: string
 }
 
@@ -21,6 +23,8 @@ export function ItemGrid({
   columns = 3,
   loading = false,
   onItemClick,
+  onItemDragStart,
+  onItemDragEnd,
   emptyStateMessage = 'アイテムが見つかりませんでした'
 }: ItemGridProps) {
   
@@ -81,8 +85,11 @@ export function ItemGrid({
         </div>
         <h3 className="text-lg font-medium text-gray-900 mb-2">アイテムなし</h3>
         <p className="text-gray-500 mb-6">{emptyStateMessage}</p>
-        <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <button 
+          onClick={() => window.location.href = '/items/new'}
+          className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 min-w-[160px]"
+        >
+          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
           新しいアイテムを追加
@@ -100,6 +107,8 @@ export function ItemGrid({
           item={item}
           viewMode={viewMode}
           onClick={onItemClick}
+          onDragStart={onItemDragStart}
+          onDragEnd={onItemDragEnd}
         />
       ))}
     </div>
@@ -152,10 +161,10 @@ export function ViewModeToggle({
         </button>
       </div>
 
-      {/* Grid columns selector (only for grid mode) */}
+      {/* Grid columns selector (only for grid mode and desktop) */}
       {viewMode === 'grid' && (
-        <div className="flex items-center space-x-2">
-          <span className="text-sm text-gray-500">列数:</span>
+        <div className="hidden sm:flex items-center space-x-2">
+          <span className="text-sm text-gray-500 whitespace-nowrap">列数:</span>
           <div className="flex items-center bg-gray-100 rounded-lg p-1">
             {[1, 2, 3, 4].map((col) => (
               <button

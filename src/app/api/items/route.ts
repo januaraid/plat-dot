@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
     const skip = (params.page - 1) * params.limit
 
     // データ取得
-    const [items, total] = await Promise.all([
+    const [items, total, categories, folders] = await Promise.all([
       prisma.item.findMany({
         where,
         skip,
@@ -104,6 +104,28 @@ export async function GET(request: NextRequest) {
         },
       }),
       prisma.item.count({ where }),
+      // カテゴリ一覧を取得（ユニークな値のみ）
+      prisma.item.findMany({
+        where: { userId: dbUser.id },
+        select: { category: true },
+        distinct: ['category'],
+      }).then(results => 
+        results
+          .map(item => item.category)
+          .filter(category => category && category.trim() !== '')
+          .sort()
+      ),
+      // フォルダ一覧を取得
+      prisma.folder.findMany({
+        where: { userId: dbUser.id },
+        select: {
+          id: true,
+          name: true,
+        },
+        orderBy: {
+          name: 'asc',
+        },
+      }),
     ])
 
     // レスポンスの構築
@@ -115,7 +137,10 @@ export async function GET(request: NextRequest) {
         total,
         totalPages: Math.ceil(total / params.limit),
       },
+      categories,
+      folders,
     }
+
 
     return NextResponse.json(response)
   } catch (error) {

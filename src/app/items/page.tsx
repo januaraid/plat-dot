@@ -2,25 +2,41 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import { ItemGrid, ViewMode, GridColumns } from '@/components/items/ItemGrid'
 import { ItemFilters, FilterOptions, ResultsCounter } from '@/components/items/ItemFilters'
 import { ViewModeToggle } from '@/components/items/ItemGrid'
 import { Pagination } from '@/components/items/Pagination'
 import { ItemDetailModal } from '@/components/items/ItemDetailModal'
 import { Item } from '@/components/items/ItemCard'
+import { FolderTree } from '@/components/folders/FolderTree'
+import { FolderModal } from '@/components/folders/FolderModal'
+import { Breadcrumb } from '@/components/folders/Breadcrumb'
+import { useSidebar } from '@/contexts/SidebarContext'
 
 interface ItemsResponse {
   items: Item[]
-  total: number
-  page: number
-  limit: number
-  totalPages: number
-  categories: string[]
-  folders: Array<{ id: string; name: string }>
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+  categories?: string[]
+  folders?: Array<{ id: string; name: string }>
 }
 
 export default function ItemsPage() {
   const { data: session, status } = useSession()
+  const router = useRouter()
+  const { setFolderProps } = useSidebar()
+
+  // 未ログインの場合はトップページにリダイレクト
+  useEffect(() => {
+    if (status !== 'loading' && (!session || !session.hasSession)) {
+      router.replace('/')
+    }
+  }, [session, status, router])
   
   // State
   const [items, setItems] = useState<Item[]>([])
@@ -37,6 +53,19 @@ export default function ItemsPage() {
   const [selectedItem, setSelectedItem] = useState<Item | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   
+  // Folder state
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
+  const [isFolderModalOpen, setIsFolderModalOpen] = useState(false)
+  const [folderModalMode, setFolderModalMode] = useState<'create' | 'edit'>('create')
+  const [editingFolder, setEditingFolder] = useState<{ id: string; name: string; parentId?: string } | null>(null)
+  const [parentFolderId, setParentFolderId] = useState<string | undefined>(undefined)
+  
+  // Drag and drop state
+  const [draggedItem, setDraggedItem] = useState<Item | null>(null)
+  
+  // Mobile sidebar state
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
+  
   // Filter state
   const [filters, setFilters] = useState<FilterOptions>({
     search: '',
@@ -47,6 +76,25 @@ export default function ItemsPage() {
     page: 1,
     limit: 24,
   })
+  
+  // Folder handlers - defined early to avoid initialization errors
+  const handleFolderSelect = useCallback((folderId: string | null) => {
+    setSelectedFolderId(folderId)
+  }, [])
+
+  const handleFolderCreate = useCallback((parentId?: string) => {
+    setFolderModalMode('create')
+    setParentFolderId(parentId)
+    setEditingFolder(null)
+    setIsFolderModalOpen(true)
+  }, [])
+
+  const handleFolderEdit = useCallback((folder: { id: string; name: string; parentId?: string }) => {
+    setFolderModalMode('edit')
+    setEditingFolder(folder)
+    setParentFolderId(undefined)
+    setIsFolderModalOpen(true)
+  }, [])
 
   // Load UI preferences from localStorage on mount
   useEffect(() => {
@@ -114,9 +162,9 @@ export default function ItemsPage() {
 
       const data: ItemsResponse = await response.json()
       
-      setItems(data.items)
-      setTotal(data.total)
-      setTotalPages(data.totalPages)
+      setItems(data.items || [])
+      setTotal(data.pagination?.total || 0)
+      setTotalPages(data.pagination?.totalPages || 0)
       setCategories(data.categories || [])
       setFolders(data.folders || [])
     } catch (err) {
@@ -127,10 +175,22 @@ export default function ItemsPage() {
     }
   }, [filters, session, status])
 
-  // Fetch items on filter change
+  // Fetch items on filter change - do not include fetchItems in dependencies to prevent infinite loop
   useEffect(() => {
-    fetchItems()
-  }, [fetchItems])
+    if (status === 'loading') return
+    if (!session || !session.hasSession) {
+      setLoading(false)
+      return
+    }
+    
+    // 直接APIを呼び出すのではなく、fetchItems関数を使用
+    // ただし、依存配列にfetchItemsを含めない
+    const executeFetch = async () => {
+      await fetchItems()
+    }
+    executeFetch()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.page, filters.limit, filters.sortBy, filters.sortOrder, filters.search, filters.category, filters.folderId, session?.hasSession, status])
 
   // Handlers
   const handleFiltersChange = (newFilters: FilterOptions) => {
@@ -201,6 +261,143 @@ export default function ItemsPage() {
     }
   }
 
+  // Update filters when selectedFolderId changes
+  useEffect(() => {
+    setFilters(prev => ({
+      ...prev,
+      folderId: selectedFolderId || '',
+      page: 1
+    }))
+  }, [selectedFolderId])
+
+  // More folder handlers (defined after fetchItems)
+  const handleFolderDelete = useCallback(async (folder: { id: string; name: string }) => {
+    try {
+      const response = await fetch(`/api/folders/${folder.id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        throw new Error('フォルダの削除に失敗しました')
+      }
+
+      // Refresh items list to reflect changes
+      fetchItems()
+      
+      // フォルダツリーを更新
+      window.dispatchEvent(new Event('folder-updated'))
+      
+      // Clear selection if deleted folder was selected
+      if (selectedFolderId === folder.id) {
+        setSelectedFolderId(null)
+      }
+    } catch (err) {
+      console.error('Error deleting folder:', err)
+      alert(err instanceof Error ? err.message : 'エラーが発生しました')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedFolderId])
+
+  const handleFolderSave = async (folderData: { name: string; parentId?: string }) => {
+    try {
+      if (folderModalMode === 'create') {
+        const response = await fetch('/api/folders', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(folderData),
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.message || 'フォルダの作成に失敗しました')
+        }
+      } else if (folderModalMode === 'edit' && editingFolder) {
+        const response = await fetch(`/api/folders/${editingFolder.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ name: folderData.name }),
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.message || 'フォルダの更新に失敗しました')
+        }
+      }
+
+      // Refresh items list to get updated folder info
+      fetchItems()
+      
+      // フォルダツリーを更新
+      window.dispatchEvent(new Event('folder-updated'))
+    } catch (err) {
+      console.error('Error saving folder:', err)
+      throw err
+    }
+  }
+
+  // Drag and drop handlers
+  const handleItemDragStart = (item: Item) => {
+    setDraggedItem(item)
+  }
+
+  const handleItemDragEnd = () => {
+    setDraggedItem(null)
+  }
+
+  const handleItemDrop = useCallback(async (itemData: Item, targetFolderId: string | null) => {
+    // アイテムが既に同じフォルダにある場合は何もしない
+    if (itemData.folder?.id === targetFolderId || (!itemData.folder && !targetFolderId)) {
+      return
+    }
+
+    try {
+      const response = await fetch('/api/items/move', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          itemId: itemData.id,
+          folderId: targetFolderId,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'アイテムの移動に失敗しました')
+      }
+
+      // アイテムリストを更新
+      fetchItems()
+    } catch (err) {
+      console.error('Error moving item:', err)
+      alert(err instanceof Error ? err.message : 'エラーが発生しました')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Set folder props for sidebar on mount and update when selectedFolderId changes
+  useEffect(() => {
+    const folderProps = {
+      selectedFolderId,
+      onFolderSelect: handleFolderSelect,
+      onFolderCreate: handleFolderCreate,
+      onFolderEdit: handleFolderEdit,
+      onFolderDelete: handleFolderDelete,
+      onItemDrop: handleItemDrop,
+    }
+    setFolderProps(folderProps)
+
+    // Cleanup: remove folder props when leaving the page
+    return () => {
+      setFolderProps(null)
+    }
+  }, [selectedFolderId, handleFolderSelect, handleFolderCreate, handleFolderEdit, handleFolderDelete, handleItemDrop, setFolderProps])
+
   // Authentication check
   if (status === 'loading') {
     return (
@@ -210,22 +407,11 @@ export default function ItemsPage() {
     )
   }
 
+  // 未ログインの場合はリダイレクト処理中
   if (!session || !session.hasSession) {
     return (
-      <div className="text-center py-12">
-        <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-          </svg>
-        </div>
-        <h3 className="text-lg font-medium text-gray-900 mb-2">ログインが必要です</h3>
-        <p className="text-gray-500 mb-6">アイテムを管理するにはログインしてください</p>
-        <a
-          href="/auth/signin"
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          ログイン
-        </a>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     )
   }
@@ -233,21 +419,39 @@ export default function ItemsPage() {
   return (
     <div className="space-y-6">
       {/* Page header */}
-      <div className="flex items-center justify-between">
+      <div className="space-y-4 sm:space-y-0 sm:flex sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">アイテム管理</h1>
           <p className="text-gray-600">持ち物を一覧表示・管理できます</p>
         </div>
+        {/* Desktop button */}
         <button
           onClick={() => window.location.href = '/items/new'}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          className="hidden sm:inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
           <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
           新しいアイテム
         </button>
+        {/* Mobile button */}
+        <button
+          onClick={() => window.location.href = '/items/new'}
+          className="sm:hidden w-full flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
+          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          新しいアイテムを追加
+        </button>
       </div>
+
+      {/* Breadcrumb */}
+      <Breadcrumb
+        selectedFolderId={selectedFolderId}
+        folders={folders}
+        onFolderSelect={handleFolderSelect}
+      />
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
@@ -306,13 +510,15 @@ export default function ItemsPage() {
         </div>
       )}
 
-      {/* Items grid */}
+          {/* Items grid */}
       <ItemGrid
         items={items}
         viewMode={viewMode}
         columns={gridColumns}
         loading={loading}
         onItemClick={handleItemClick}
+        onItemDragStart={handleItemDragStart}
+        onItemDragEnd={handleItemDragEnd}
         emptyStateMessage="アイテムが見つかりませんでした。新しいアイテムを追加してみてください。"
       />
 
@@ -333,6 +539,16 @@ export default function ItemsPage() {
         onClose={handleModalClose}
         onEdit={handleItemEdit}
         onDelete={handleItemDelete}
+      />
+
+      {/* Folder modal */}
+      <FolderModal
+        isOpen={isFolderModalOpen}
+        onClose={() => setIsFolderModalOpen(false)}
+        onSave={handleFolderSave}
+        folder={editingFolder}
+        parentId={parentFolderId}
+        mode={folderModalMode}
       />
     </div>
   )

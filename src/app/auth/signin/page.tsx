@@ -39,10 +39,10 @@ export default function SignInPage() {
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            アカウントにサインイン
+            plat-dot にログイン
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            AI在庫管理システムへようこそ
+            AI技術を活用した持ち物管理システム
           </p>
         </div>
         <div className="mt-8 space-y-6">
@@ -88,6 +88,21 @@ export default function SignInPage() {
                 </button>
               </div>
             ))}
+          
+          {/* プライバシーポリシー同意文 */}
+          <div className="mt-6 text-center">
+            <p className="text-xs text-gray-500">
+              ログインすることで、当サービスの
+              <a href="#" className="text-blue-600 hover:text-blue-800 underline mx-1">
+                プライバシーポリシー
+              </a>
+              および
+              <a href="#" className="text-blue-600 hover:text-blue-800 underline mx-1">
+                利用規約
+              </a>
+              に同意したものとみなされます。
+            </p>
+          </div>
         </div>
       </div>
     </div>
