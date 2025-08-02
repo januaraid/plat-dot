@@ -57,8 +57,24 @@ export function Header({ onMenuToggle, isSidebarOpen }: HeaderProps) {
 
             <Link href="/" className="flex items-center ml-2 md:ml-0">
               <div className="flex items-center">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
-                  <span className="text-white font-bold text-lg">P</span>
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-3 p-1">
+                  {/* plat-dot logo icon */}
+                  <svg className="w-full h-full" viewBox="0 0 32 32" fill="none">
+                    {/* Box/package icon representing inventory management */}
+                    <g transform="translate(6, 6)">
+                      {/* Main box */}
+                      <path d="M2 8L10 4L18 8V18L10 22L2 18V8Z" fill="#ffffff" stroke="#e5e7eb" strokeWidth="0.5"/>
+                      
+                      {/* Box lines for 3D effect */}
+                      <path d="M2 8L10 12L18 8" stroke="#cbd5e1" strokeWidth="1" fill="none"/>
+                      <path d="M10 12V22" stroke="#cbd5e1" strokeWidth="1"/>
+                      
+                      {/* Small dots representing items */}
+                      <circle cx="6" cy="10" r="1" fill="#60a5fa"/>
+                      <circle cx="14" cy="10" r="1" fill="#60a5fa"/>
+                      <circle cx="10" cy="15" r="1" fill="#60a5fa"/>
+                    </g>
+                  </svg>
                 </div>
                 <span className="font-bold text-xl text-gray-900">plat-dot</span>
               </div>
@@ -113,8 +129,8 @@ export function Header({ onMenuToggle, isSidebarOpen }: HeaderProps) {
                 >
                   <img
                     className="h-8 w-8 rounded-full"
-                    src={session.user?.image || '/default-avatar.svg'}
-                    alt={session.user?.name || 'ユーザー'}
+                    src={session?.session?.user?.image || session?.user?.image || '/default-avatar.svg'}
+                    alt={session?.session?.user?.name || session?.user?.name || 'ユーザー'}
                   />
                 </button>
 
@@ -123,8 +139,8 @@ export function Header({ onMenuToggle, isSidebarOpen }: HeaderProps) {
                   <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
                     <div className="py-1">
                       <div className="px-4 py-2 text-sm text-gray-700 border-b">
-                        <div className="font-medium">{session.user?.name}</div>
-                        <div className="text-gray-500">{session.user?.email}</div>
+                        <div className="font-medium">{session?.session?.user?.name || session?.user?.name}</div>
+                        <div className="text-gray-500">{session?.session?.user?.email || session?.user?.email}</div>
                       </div>
                       <Link
                         href="/profile"
