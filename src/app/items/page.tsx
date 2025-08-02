@@ -96,6 +96,9 @@ export default function ItemsPage() {
     setIsFolderModalOpen(true)
   }, [])
 
+  // Track if localStorage has been loaded
+  const [isLocalStorageLoaded, setIsLocalStorageLoaded] = useState(false)
+
   // Load UI preferences from localStorage on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -129,6 +132,9 @@ export default function ItemsPage() {
           ? parseInt(savedLimit)
           : prev.limit,
       }))
+      
+      // Mark localStorage as loaded
+      setIsLocalStorageLoaded(true)
     }
   }, [])
 
@@ -175,22 +181,18 @@ export default function ItemsPage() {
     }
   }, [filters, session, status])
 
-  // Fetch items on filter change - do not include fetchItems in dependencies to prevent infinite loop
+  // Fetch items when localStorage is loaded and filters change
   useEffect(() => {
+    // Wait for localStorage to be loaded before making API calls
+    if (!isLocalStorageLoaded) return
     if (status === 'loading') return
     if (!session || !session.hasSession) {
       setLoading(false)
       return
     }
     
-    // 直接APIを呼び出すのではなく、fetchItems関数を使用
-    // ただし、依存配列にfetchItemsを含めない
-    const executeFetch = async () => {
-      await fetchItems()
-    }
-    executeFetch()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.page, filters.limit, filters.sortBy, filters.sortOrder, filters.search, filters.category, filters.folderId, session?.hasSession, status])
+    fetchItems()
+  }, [isLocalStorageLoaded, filters, session?.hasSession, status, fetchItems])
 
   // Handlers
   const handleFiltersChange = (newFilters: FilterOptions) => {

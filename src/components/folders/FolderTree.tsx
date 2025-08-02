@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react'
+import { useState, useEffect, useCallback, useImperativeHandle, forwardRef, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 // SVGアイコンコンポーネント
 const ChevronRightIcon = ({ className }: { className?: string }) => (
@@ -67,6 +67,17 @@ export const FolderTree = forwardRef<FolderTreeHandle, FolderTreeProps>(({
   className = ''
 }, ref) => {
   const { data: session, status } = useSession()
+  const instanceId = useRef(Math.random().toString(36).substr(2, 9))
+  
+  // セッション変更のデバッグ - statusとhasSessionのみを監視
+  useEffect(() => {
+    console.log(`[FolderTree DEBUG:${instanceId.current}] Auth state changed`, {
+      status,
+      hasSession: session?.hasSession,
+      timestamp: new Date().toISOString()
+    })
+  }, [status, session?.hasSession]) // sessionオブジェクト全体ではなく必要なプロパティのみ監視
+  
   const [folders, setFolders] = useState<Folder[]>([])
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
@@ -74,11 +85,26 @@ export const FolderTree = forwardRef<FolderTreeHandle, FolderTreeProps>(({
   const [hoveredFolder, setHoveredFolder] = useState<string | null>(null)
   const [dragOverFolder, setDragOverFolder] = useState<string | null>(null)
 
+  // 安定した参照を維持するためのフラグ
+  const isAuthenticated = status === 'authenticated' && session?.hasSession
+  const isLoading = status === 'loading'
+
   // フォルダツリーを取得
   const fetchFolders = useCallback(async () => {
+    console.log(`[FolderTree DEBUG:${instanceId.current}] fetchFolders called`, {
+      status,
+      isAuthenticated,
+      isLoading,
+      timestamp: new Date().toISOString()
+    })
+    
     // 未ログインの場合は何もしない
-    if (status === 'loading') return
-    if (!session || !session.hasSession) {
+    if (isLoading) {
+      console.log(`[FolderTree DEBUG:${instanceId.current}] Status is loading, skipping fetch`)
+      return
+    }
+    if (!isAuthenticated) {
+      console.log(`[FolderTree DEBUG:${instanceId.current}] Not authenticated, clearing folders`)
       setFolders([])
       setLoading(false)
       return
@@ -87,6 +113,7 @@ export const FolderTree = forwardRef<FolderTreeHandle, FolderTreeProps>(({
     try {
       setLoading(true)
       setError(null)
+      console.log('[FolderTree DEBUG] Starting API call to /api/folders/tree')
 
       const response = await fetch('/api/folders/tree?includeItemCount=true')
       if (!response.ok) {
@@ -94,6 +121,10 @@ export const FolderTree = forwardRef<FolderTreeHandle, FolderTreeProps>(({
       }
 
       const data = await response.json()
+      console.log('[FolderTree DEBUG] API response received', { 
+        dataLength: data.tree?.length || data.folders?.length || 0,
+        timestamp: new Date().toISOString()
+      })
       
       // APIレスポンスをFolderインターフェースに変換
       const transformFolders = (folders: any[]): Folder[] => {
@@ -108,16 +139,28 @@ export const FolderTree = forwardRef<FolderTreeHandle, FolderTreeProps>(({
         }))
       }
       
-      setFolders(transformFolders(data.tree || data.folders || []))
+      const transformedFolders = transformFolders(data.tree || data.folders || [])
+      console.log('[FolderTree DEBUG] Setting folders state', { 
+        folderCount: transformedFolders.length,
+        timestamp: new Date().toISOString()
+      })
+      setFolders(transformedFolders)
     } catch (err) {
-      console.error('Error fetching folders:', err)
+      console.error('[FolderTree DEBUG] Error fetching folders:', err)
       setError(err instanceof Error ? err.message : 'エラーが発生しました')
     } finally {
       setLoading(false)
+      console.log('[FolderTree DEBUG] fetchFolders completed', {
+        timestamp: new Date().toISOString()
+      })
     }
-  }, [session, status])
+  }, [isAuthenticated, isLoading]) // より安定した依存関係
 
   useEffect(() => {
+    console.log('[FolderTree DEBUG] Main useEffect triggered', {
+      fetchFoldersRef: fetchFolders.toString().slice(0, 50) + '...',
+      timestamp: new Date().toISOString()
+    })
     fetchFolders()
   }, [fetchFolders])
 
@@ -126,19 +169,28 @@ export const FolderTree = forwardRef<FolderTreeHandle, FolderTreeProps>(({
     refresh: fetchFolders
   }), [fetchFolders])
 
+  // フォルダ更新イベントハンドラー
+  const handleFolderUpdate = useCallback(() => {
+    console.log('[FolderTree DEBUG] Folder update event received', {
+      timestamp: new Date().toISOString()
+    })
+    fetchFolders()
+  }, [fetchFolders])
+
   // フォルダ更新イベントをリッスン
   useEffect(() => {
-    const handleFolderUpdate = () => {
-      console.log('Folder update event received')
-      fetchFolders()
-    }
-
+    console.log('[FolderTree DEBUG] Setting up folder-updated event listener', {
+      timestamp: new Date().toISOString()
+    })
     window.addEventListener('folder-updated', handleFolderUpdate)
 
     return () => {
+      console.log('[FolderTree DEBUG] Removing folder-updated event listener', {
+        timestamp: new Date().toISOString()
+      })
       window.removeEventListener('folder-updated', handleFolderUpdate)
     }
-  }, [fetchFolders])
+  }, [handleFolderUpdate])
 
   // フォルダの展開/折りたたみ
   const toggleFolder = (folderId: string) => {
