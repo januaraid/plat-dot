@@ -57,6 +57,19 @@ export default function TestIndexPage() {
             → テストページを開く
           </div>
         </Link>
+        
+        <Link 
+          href="/test/images" 
+          className="block bg-white shadow rounded-lg p-6 hover:shadow-lg transition-shadow"
+        >
+          <h2 className="text-xl font-semibold mb-2">画像管理機能</h2>
+          <p className="text-gray-600">
+            画像の一覧表示、削除、順序変更機能をテストできます。
+          </p>
+          <div className="mt-4 text-sm text-blue-500">
+            → テストページを開く
+          </div>
+        </Link>
       </div>
       
       <div className="mt-12 bg-white shadow rounded-lg p-6">
@@ -109,6 +122,14 @@ export default function TestIndexPage() {
                 <li>• <code>POST /api/upload</code> - 画像アップロード（形式・サイズ検証付き）</li>
                 <li>• <code>GET /api/upload</code> - アップロード設定情報取得</li>
                 <li>• <code>GET /api/uploads/[fileName]</code> - アップロード済み画像取得</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-medium text-gray-800">画像管理API:</h4>
+              <ul className="text-gray-600 space-y-1 ml-4">
+                <li>• <code>GET /api/items/[id]/images</code> - アイテムの画像一覧取得</li>
+                <li>• <code>DELETE /api/images/[id]</code> - 画像削除（ファイルとDB両方）</li>
+                <li>• <code>PUT /api/images/order</code> - 画像順序更新（ドラッグ&ドロップ対応準備）</li>
               </ul>
             </div>
           </div>
