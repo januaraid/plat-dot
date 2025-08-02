@@ -13,11 +13,12 @@ export default auth((req) => {
     return httpsRedirect
   }
 
-  // APIルートのレート制限チェック（NextAuth.jsの内部エンドポイントは除外）
+  // APIルートのレート制限チェック（開発環境では緩和、NextAuth.jsの内部エンドポイントは除外）
   if (nextUrl.pathname.startsWith('/api/') && 
       !nextUrl.pathname.startsWith('/api/auth/callback') &&
       !nextUrl.pathname.startsWith('/api/auth/csrf') &&
-      !nextUrl.pathname.startsWith('/api/auth/providers')) {
+      !nextUrl.pathname.startsWith('/api/auth/providers') &&
+      process.env.NODE_ENV !== 'development') {
     const userId = req.auth?.user?.id
     const { allowed, resetTime } = checkRateLimit(req, userId)
     

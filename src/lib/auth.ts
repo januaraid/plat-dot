@@ -6,12 +6,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          prompt: "select_account consent",
+          access_type: "offline",
+          response_type: "code",
+          include_granted_scopes: "true",
+        },
+      },
     }),
   ],
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   debug: process.env.NODE_ENV === "development",
+  pages: {
+    signIn: "/auth/signin",
+    error: "/auth/error",
+  },
   callbacks: {
     async signIn({ user, account }) {      
       // Edge Runtimeではデータベース操作を避ける
@@ -25,13 +38,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const consistentId = user.email
         token.userId = consistentId
         token.email = user.email
+        if (user.name) token.name = user.name
+        if (user.image) token.image = user.image
       }
       return token
     },
     async session({ session, token }) {
-      if (session.user && token.userId) {
+      if (session.user) {
         // メールアドレスをユーザーIDとして使用（一貫性を保つ）
-        session.user.id = token.userId as string
+        if (token.userId) {
+          session.user.id = token.userId as string
+        }
+        
+        // トークンからユーザー情報を復元（元の情報を保持）
+        // NextAuth.jsのデフォルト動作を優先し、トークンからの情報は補完のみ
+        if (token.email && !session.user.email) {
+          session.user.email = token.email as string
+        }
+        if (token.name && !session.user.name) {
+          session.user.name = token.name as string
+        }
+        if (token.image && !session.user.image) {
+          session.user.image = token.image as string
+        }
         
         // Edge Runtimeでは基本情報のみ設定（Prismaアクセスを避ける）
         session.user.subscriptionTier = 'free'
