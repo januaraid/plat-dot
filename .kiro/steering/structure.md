@@ -57,8 +57,33 @@ src/app/
 ### Components Structure (`src/components/`)
 ```
 src/components/
-└── providers/               # Contextプロバイダー
-    └── SessionProvider.tsx  # NextAuth セッションプロバイダー
+├── folders/                # フォルダ管理コンポーネント
+│   ├── FolderTree.tsx     # フォルダツリー表示
+│   ├── FolderModal.tsx    # フォルダ作成・編集モーダル
+│   └── Breadcrumb.tsx     # パンくずナビゲーション
+├── items/                  # アイテム管理コンポーネント
+│   ├── ItemCard.tsx       # アイテムカード表示
+│   ├── ItemForm.tsx       # アイテム作成・編集フォーム
+│   ├── ItemGrid.tsx       # アイテムグリッド表示
+│   ├── ItemFilters.tsx    # フィルター・検索UI
+│   └── Pagination.tsx     # ページネーション
+├── ui/                     # UI基底コンポーネント
+│   ├── Modal.tsx          # 汎用モーダル
+│   ├── Sidebar.tsx        # サイドバー
+│   ├── Header.tsx         # ヘッダー
+│   └── Navigation.tsx     # ナビゲーション
+├── providers/              # Contextプロバイダー
+│   └── SessionProvider.tsx # NextAuth セッションプロバイダー
+└── UploadedImage.tsx       # 画像表示コンポーネント
+```
+
+### Additional Source Structure (`src/`)
+```
+src/
+├── contexts/               # React Context管理
+│   └── SidebarContext.tsx # サイドバー状態管理
+└── hooks/                  # カスタムReactフック
+    └── useItems.ts        # アイテム操作フック
 ```
 
 ### Library Structure (`src/lib/`)

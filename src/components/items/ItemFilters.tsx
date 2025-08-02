@@ -16,7 +16,7 @@ interface ItemFiltersProps {
   filters: FilterOptions
   onFiltersChange: (filters: FilterOptions) => void
   categories?: string[]
-  folders?: Array<{ id: string; name: string }>
+  folders?: Array<{ id: string; name: string; displayName?: string }>
   loading?: boolean
 }
 
@@ -185,7 +185,7 @@ export function ItemFilters({
                 <option value="">すべてのフォルダ</option>
                 {folders.map((folder) => (
                   <option key={folder.id} value={folder.id}>
-                    {folder.name}
+                    {folder.displayName || folder.name}
                   </option>
                 ))}
               </select>

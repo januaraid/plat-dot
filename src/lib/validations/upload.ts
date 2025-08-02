@@ -19,7 +19,7 @@ export const uploadImageSchema = z.object({
  */
 export const fileValidationConfig = {
   maxSize: 10 * 1024 * 1024, // 10MB
-  acceptedFormats: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
+  acceptedFormats: ['image/jpeg', 'image/png', 'image/webp'],
   acceptedExtensions: ['.jpg', '.jpeg', '.png', '.webp'],
 }
 

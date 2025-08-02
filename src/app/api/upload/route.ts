@@ -174,6 +174,10 @@ export async function POST(request: NextRequest) {
       message: '画像をアップロードしました',
       image: {
         ...savedImage,
+        // 画像URLをAPI経由のパスに変換
+        url: savedImage.url.startsWith('/uploads/') 
+          ? savedImage.url.replace('/uploads/', '/api/uploads/')
+          : savedImage.url,
         // クライアント側の互換性のため、キャメルケースのプロパティも追加
         fileName: savedImage.filename,
         fileSize: savedImage.size,

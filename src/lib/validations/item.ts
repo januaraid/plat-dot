@@ -50,7 +50,10 @@ const dateValidation = z.union([
   // 未来の日付チェック（購入日は未来であってはならない）
   const now = new Date()
   const inputDate = val instanceof Date ? val : new Date(val)
-  return inputDate <= now
+  // 時刻を無視して日付のみで比較
+  const nowDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const inputDateOnly = new Date(inputDate.getFullYear(), inputDate.getMonth(), inputDate.getDate())
+  return inputDateOnly <= nowDate
 }, '購入日は現在より未来の日付にはできません')
 .transform(val => {
   if (!val) return undefined
@@ -103,10 +106,11 @@ const baseItemSchema = z.object({
     .transform(val => val?.trim())
     .refine(val => {
       if (val === '' || val === undefined) return true
-      // UUIDの正規表現チェック
+      // UUIDまたはCUID形式のIDを許可
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-      return uuidRegex.test(val)
-    }, '有効なフォルダIDを指定してください（UUID形式）')
+      const cuidRegex = /^c[a-z0-9]{24,}$/i
+      return uuidRegex.test(val) || cuidRegex.test(val)
+    }, '有効なフォルダIDを指定してください')
     .transform(val => val === '' ? undefined : val)
     .optional(),
 })
