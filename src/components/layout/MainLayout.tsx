@@ -6,6 +6,8 @@ import { Header } from './Header'
 import { Sidebar } from './Sidebar'
 import { Footer } from './Footer'
 import { useSidebar } from '@/contexts/SidebarContext'
+import { usePerformanceProfiler } from '@/hooks/usePerformanceProfiler'
+import { PerformanceMonitor } from '@/components/debug/PerformanceMonitor'
 
 interface MainLayoutProps {
   children: React.ReactNode
@@ -19,6 +21,21 @@ export function MainLayout({ children }: MainLayoutProps) {
   const pathname = usePathname()
   const { folderProps } = useSidebar()
   const sidebarRef = useRef<HTMLDivElement>(null)
+
+  // Performance profiling
+  usePerformanceProfiler('MainLayout')
+  
+  // デバッグ: 再レンダリングの原因を特定
+  useEffect(() => {
+    console.log('[MainLayout] Re-render detected:', {
+      pathname,
+      isSidebarOpen,
+      sidebarWidth,
+      isResizing,
+      isMinimized,
+      folderPropsKeys: folderProps ? Object.keys(folderProps) : 'null'
+    })
+  })
 
   // Close sidebar when route changes (mobile)
   useEffect(() => {
@@ -60,7 +77,6 @@ export function MainLayout({ children }: MainLayoutProps) {
 
   // Handle resize
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    console.log('handleMouseDown triggered')
     e.preventDefault()
     setIsResizing(true)
   }, [])
@@ -68,34 +84,27 @@ export function MainLayout({ children }: MainLayoutProps) {
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isResizing) return
     
-    console.log('handleMouseMove - clientX:', e.clientX, 'isResizing:', isResizing)
     const newWidth = e.clientX
     if (newWidth >= 200) { // 最小200pxのみ、最大制限なし
       setSidebarWidth(newWidth)
-      console.log('Setting new width:', newWidth)
     }
   }, [isResizing])
 
   const handleMouseUp = useCallback(() => {
-    console.log('handleMouseUp - isResizing:', isResizing)
     if (isResizing) {
       setIsResizing(false)
       localStorage.setItem('sidebarWidth', sidebarWidth.toString())
-      console.log('Saved width to localStorage:', sidebarWidth)
     }
   }, [isResizing, sidebarWidth])
 
   // Add mouse event listeners
   useEffect(() => {
-    console.log('useEffect for resize - isResizing:', isResizing)
     if (isResizing) {
       document.addEventListener('mousemove', handleMouseMove)
       document.addEventListener('mouseup', handleMouseUp)
-      console.log('Added resize event listeners')
       return () => {
         document.removeEventListener('mousemove', handleMouseMove)
         document.removeEventListener('mouseup', handleMouseUp)
-        console.log('Removed resize event listeners')
       }
     }
   }, [isResizing, handleMouseMove, handleMouseUp])
@@ -189,6 +198,9 @@ export function MainLayout({ children }: MainLayoutProps) {
           </div>
         </main>
       </div>
+      
+      {/* Performance Monitor - Development only */}
+      {process.env.NODE_ENV === 'development' && <PerformanceMonitor />}
     </div>
   )
 }

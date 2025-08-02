@@ -20,9 +20,13 @@ export interface Item {
   name: string
   description?: string
   category?: string
-  price?: number
-  quantity: number
-  location?: string
+  purchasePrice?: number
+  purchaseDate?: string
+  purchaseLocation?: string
+  condition?: string
+  notes?: string
+  folderId?: string
+  userId?: string
   createdAt: string
   updatedAt: string
   folder?: ItemFolder
@@ -59,8 +63,17 @@ export function ItemCard({ item, viewMode = 'grid', onClick, onDragStart, onDrag
   }
 
   const handleDragStart = (e: React.DragEvent) => {
-    e.dataTransfer.setData('application/json', JSON.stringify(item))
+    const itemJson = JSON.stringify(item)
+    console.log('[ItemCard] Drag start:', {
+      itemId: item.id,
+      itemName: item.name,
+      itemJson: itemJson,
+      hasOnDragStart: !!onDragStart
+    })
+    
+    e.dataTransfer.setData('application/json', itemJson)
     e.dataTransfer.effectAllowed = 'move'
+    
     if (onDragStart) {
       onDragStart(item)
     }
@@ -124,9 +137,9 @@ export function ItemCard({ item, viewMode = 'grid', onClick, onDragStart, onDrag
                 )}
               </div>
               <div className="flex-shrink-0 ml-4">
-                {formatPrice(item.price) && (
+                {formatPrice(item.purchasePrice) && (
                   <span className="text-lg font-bold text-green-600">
-                    {formatPrice(item.price)}
+                    {formatPrice(item.purchasePrice)}
                   </span>
                 )}
               </div>
@@ -148,7 +161,6 @@ export function ItemCard({ item, viewMode = 'grid', onClick, onDragStart, onDrag
                     {item.folder.name}
                   </span>
                 )}
-                <span>数量: {item.quantity}</span>
               </div>
             </div>
           </div>
@@ -186,6 +198,23 @@ export function ItemCard({ item, viewMode = 'grid', onClick, onDragStart, onDrag
           </div>
         )}
         
+        {/* カテゴリ・フォルダ情報 - 画像上部 */}
+        <div className="absolute top-2 left-2 flex flex-col gap-1">
+          {item.category && (
+            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-600 bg-opacity-90 text-white backdrop-blur-sm">
+              {item.category}
+            </span>
+          )}
+          {item.folder && (
+            <div className="flex items-center bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded-full backdrop-blur-sm">
+              <svg className="w-3 h-3 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+              </svg>
+              <span className="truncate max-w-[6rem]">{item.folder.name}</span>
+            </div>
+          )}
+        </div>
+
         {/* Image count badge */}
         {hasMultipleImages && (
           <div className="absolute top-2 right-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded-full">
@@ -196,54 +225,35 @@ export function ItemCard({ item, viewMode = 'grid', onClick, onDragStart, onDrag
         {/* Quick action overlay */}
         {isHovered && (
           <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            <button className="bg-white text-gray-900 px-4 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors">
+            <div className="bg-white text-gray-900 px-4 py-2 rounded-lg font-medium pointer-events-none">
               詳細を見る
-            </button>
+            </div>
           </div>
         )}
       </div>
 
       {/* Content */}
       <div className="p-4">
-        <div className="flex items-start justify-between mb-2">
-          <h3 className="text-lg font-semibold text-gray-900 truncate flex-1">
-            {item.name}
-          </h3>
-          {formatPrice(item.price) && (
-            <span className="text-lg font-bold text-green-600 ml-2">
-              {formatPrice(item.price)}
-            </span>
-          )}
-        </div>
+        {/* 商品名 - 2行まで表示 */}
+        <h3 className="text-base font-semibold text-gray-900 line-clamp-2 leading-tight mb-3 min-h-[2.5rem]">
+          {item.name}
+        </h3>
 
+        {/* 価格 - 目立つ位置に */}
+        {formatPrice(item.purchasePrice) && (
+          <div className="mb-2">
+            <span className="text-xl font-bold text-green-600">
+              {formatPrice(item.purchasePrice)}
+            </span>
+          </div>
+        )}
+
+        {/* 説明文 - 1行のみ、簡潔に */}
         {item.description && (
-          <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+          <p className="text-sm text-gray-500 line-clamp-1">
             {item.description}
           </p>
         )}
-
-        {/* Meta info */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-500">数量:</span>
-            <span className="font-medium">{item.quantity}</span>
-          </div>
-          
-          {item.category && (
-            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-              {item.category}
-            </span>
-          )}
-          
-          {item.folder && (
-            <div className="flex items-center text-xs text-gray-500 mt-2">
-              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
-              </svg>
-              {item.folder.name}
-            </div>
-          )}
-        </div>
       </div>
     </div>
   )

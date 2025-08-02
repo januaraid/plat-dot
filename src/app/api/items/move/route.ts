@@ -25,19 +25,17 @@ const moveItemSchema = z.object({
       return uuidRegex.test(val) || cuidRegex.test(val)
     }, '有効なアイテムIDを指定してください'),
 
-  targetFolderId: z.string()
-    .transform(val => val?.trim())
-    .refine(val => {
-      if (val === '' || val === undefined) return true
-      // UUIDまたはcuid形式のIDを許可
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-      const cuidRegex = /^c[a-z0-9]{24,}$/i
-      return uuidRegex.test(val) || cuidRegex.test(val)
-    }, '有効な移動先フォルダIDを指定してください')
-    .transform(val => val === '' ? null : val)
-    .nullable()
-    .optional()
-    .default(null),
+  folderId: z.union([
+    z.string()
+      .min(1, '有効なフォルダIDを指定してください')
+      .refine(val => {
+        // UUIDまたはcuid形式のIDを許可
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+        const cuidRegex = /^c[a-z0-9]{24,}$/i
+        return uuidRegex.test(val) || cuidRegex.test(val)
+      }, '有効なフォルダIDを指定してください'),
+    z.null()
+  ]).optional().default(null),
 })
 
 /**
@@ -61,7 +59,10 @@ export async function POST(request: NextRequest) {
 
     // リクエストボディのバリデーション
     const body = await request.json()
+    console.log('[Items Move API] Request body:', body)
+    
     const data = moveItemSchema.parse(body)
+    console.log('[Items Move API] Parsed data:', data)
 
     // アイテムの存在と所有権をチェック
     const item = await prisma.item.findFirst({
@@ -88,10 +89,10 @@ export async function POST(request: NextRequest) {
 
     // 移動先フォルダが指定されている場合は存在と所有権をチェック
     let targetFolder = null
-    if (data.targetFolderId) {
+    if (data.folderId) {
       targetFolder = await prisma.folder.findFirst({
         where: {
-          id: data.targetFolderId,
+          id: data.folderId,
           userId: dbUser.id,
         },
         select: {
@@ -101,17 +102,17 @@ export async function POST(request: NextRequest) {
       })
 
       if (!targetFolder) {
-        return ErrorResponses.notFound('指定された移動先フォルダが見つかりません', 'targetFolderId')
+        return ErrorResponses.notFound('指定された移動先フォルダが見つかりません', 'folderId')
       }
     }
 
     // 同じフォルダへの移動をチェック
-    if (item.folderId === data.targetFolderId) {
+    if (item.folderId === data.folderId) {
       const currentLocation = item.folder?.name || '未分類'
       const targetLocation = targetFolder?.name || '未分類'
       return ErrorResponses.badRequest(
         `アイテムは既に「${currentLocation}」フォルダに配置されています`,
-        'targetFolderId'
+        'folderId'
       )
     }
 
@@ -121,7 +122,7 @@ export async function POST(request: NextRequest) {
         id: data.itemId,
       },
       data: {
-        folderId: data.targetFolderId,
+        folderId: data.folderId,
       },
       select: {
         id: true,
@@ -160,6 +161,10 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     if (error instanceof ZodError) {
+      console.error('[Items Move API] Zod validation error:', {
+        issues: error.issues,
+        message: error.message
+      })
       return validationErrorResponse(error, 'アイテム移動のデータに誤りがあります')
     }
     

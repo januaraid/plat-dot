@@ -71,7 +71,18 @@ export async function GET(
       return ErrorResponses.notFound('アイテム')
     }
 
-    return NextResponse.json(item)
+    // 画像URLをAPI経由のパスに変換
+    const itemWithFixedUrls = {
+      ...item,
+      images: item.images.map(image => ({
+        ...image,
+        url: image.url.startsWith('/uploads/') 
+          ? image.url.replace('/uploads/', '/api/uploads/')
+          : image.url
+      }))
+    }
+
+    return NextResponse.json(itemWithFixedUrls)
   } catch (error) {
     if (error instanceof ZodError) {
       return validationErrorResponse(error, 'アイテムIDの形式に誤りがあります')
@@ -180,7 +191,18 @@ export async function PUT(
       },
     })
 
-    return NextResponse.json(item)
+    // 画像URLをAPI経由のパスに変換
+    const itemWithFixedUrls = {
+      ...item,
+      images: item.images.map(image => ({
+        ...image,
+        url: image.url.startsWith('/uploads/') 
+          ? image.url.replace('/uploads/', '/api/uploads/')
+          : image.url
+      }))
+    }
+
+    return NextResponse.json(itemWithFixedUrls)
   } catch (error) {
     if (error instanceof ZodError) {
       return validationErrorResponse(error, 'アイテムの更新データに誤りがあります')

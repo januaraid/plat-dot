@@ -1,5 +1,25 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // React Strict Modeを無効化（開発時の二重レンダリング防止）
+  reactStrictMode: false,
+  
+  // Fast Refreshを制限（開発時の過度な再レンダリング防止）
+  webpack: (config, { dev }) => {
+    if (dev) {
+      config.watchOptions = {
+        ...config.watchOptions,
+        ignored: ['**/node_modules/**', '**/.next/**'],
+        poll: false, // ポーリングを無効化
+      }
+    }
+    return config
+  },
+  
+  // 開発時のパフォーマンス最適化
+  experimental: {
+    optimizePackageImports: ['react', 'react-dom'],
+  },
+  
   images: {
     remotePatterns: [
       {

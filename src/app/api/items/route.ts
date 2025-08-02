@@ -115,16 +115,44 @@ export async function GET(request: NextRequest) {
           .filter(category => category && category.trim() !== '')
           .sort()
       ),
-      // フォルダ一覧を取得
+      // フォルダ一覧を取得（階層構造を考慮したソート）
       prisma.folder.findMany({
         where: { userId: dbUser.id },
         select: {
           id: true,
           name: true,
+          parentId: true,
         },
-        orderBy: {
-          name: 'asc',
-        },
+        orderBy: [
+          { parentId: 'asc' }, // 親フォルダが先
+          { name: 'asc' },     // 同レベルでは名前順
+        ],
+      }).then(folders => {
+        // 階層構造でソートするヘルパー関数
+        const sortFoldersHierarchically = (folders: any[]) => {
+          const folderMap = new Map(folders.map(f => [f.id, f]))
+          const result: any[] = []
+          
+          // ルートフォルダ（parentId が null）から開始
+          const addFolderAndChildren = (folderId: string | null, level = 0) => {
+            folders
+              .filter(f => f.parentId === folderId)
+              .sort((a, b) => a.name.localeCompare(b.name))
+              .forEach(folder => {
+                result.push({
+                  id: folder.id,
+                  name: folder.name,
+                  displayName: '　'.repeat(level) + folder.name, // インデント表示用
+                })
+                addFolderAndChildren(folder.id, level + 1)
+              })
+          }
+          
+          addFolderAndChildren(null)
+          return result
+        }
+        
+        return sortFoldersHierarchically(folders)
       }),
     ])
 

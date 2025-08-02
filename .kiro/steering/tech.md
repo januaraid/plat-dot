@@ -81,6 +81,12 @@ npm run db:studio
 
 # シードデータ投入
 npm run db:seed
+
+# ファイルアップロードディレクトリ作成
+mkdir -p public/uploads
+
+# 開発時のアップロードファイルクリア
+rm -rf public/uploads/*
 ```
 
 ## Environment Variables
@@ -121,6 +127,14 @@ DATABASE_URL=file:./dev.db  # 開発環境（SQLite）
 - **Prisma Studio**: 5555（データベース管理UI）
 - **PostgreSQL**: 5432（本番環境予定）
 
+## File Upload Configuration
+- **Upload Directory**: `public/uploads/`
+- **File Types**: JPG, JPEG, PNG, WEBP
+- **Max File Size**: 5MB per file
+- **Max Files**: 10 files per item
+- **File Naming**: UUID-based naming for uniqueness
+- **Access URL**: `/api/uploads/[filename]`
+
 ## Security Considerations
 - **HTTPS**: 本番環境では必須
 - **CORS**: 適切なオリジン設定
@@ -129,3 +143,5 @@ DATABASE_URL=file:./dev.db  # 開発環境（SQLite）
 - **SQL Injection対策**: ORMの使用
 - **XSS対策**: React自動エスケープ + CSP
 - **認証**: JWT + セキュアクッキー
+- **File Upload Security**: ファイルタイプ検証、ファイルサイズ制限
+- **Path Traversal対策**: ファイルパスのサニタイズ

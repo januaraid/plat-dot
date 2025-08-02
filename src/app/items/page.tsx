@@ -7,12 +7,12 @@ import { ItemGrid, ViewMode, GridColumns } from '@/components/items/ItemGrid'
 import { ItemFilters, FilterOptions, ResultsCounter } from '@/components/items/ItemFilters'
 import { ViewModeToggle } from '@/components/items/ItemGrid'
 import { Pagination } from '@/components/items/Pagination'
-import { ItemDetailModal } from '@/components/items/ItemDetailModal'
 import { Item } from '@/components/items/ItemCard'
 import { FolderTree } from '@/components/folders/FolderTree'
 import { FolderModal } from '@/components/folders/FolderModal'
 import { Breadcrumb } from '@/components/folders/Breadcrumb'
 import { useSidebar } from '@/contexts/SidebarContext'
+import { useItems } from '@/hooks/useItems'
 
 interface ItemsResponse {
   items: Item[]
@@ -23,13 +23,16 @@ interface ItemsResponse {
     totalPages: number
   }
   categories?: string[]
-  folders?: Array<{ id: string; name: string }>
+  folders?: Array<{ id: string; name: string; displayName?: string }>
 }
 
 export default function ItemsPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const { setFolderProps } = useSidebar()
+  
+  // Custom hooks for API operations
+  const { deleteItem } = useItems()
 
   // 未ログインの場合はトップページにリダイレクト
   useEffect(() => {
@@ -43,15 +46,13 @@ export default function ItemsPage() {
   const [total, setTotal] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
   const [categories, setCategories] = useState<string[]>([])
-  const [folders, setFolders] = useState<Array<{ id: string; name: string }>>([])
+  const [folders, setFolders] = useState<Array<{ id: string; name: string; displayName?: string }>>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   
   // UI State with localStorage persistence
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [gridColumns, setGridColumns] = useState<GridColumns>(3)
-  const [selectedItem, setSelectedItem] = useState<Item | null>(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
   
   // Folder state
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
@@ -59,6 +60,7 @@ export default function ItemsPage() {
   const [folderModalMode, setFolderModalMode] = useState<'create' | 'edit'>('create')
   const [editingFolder, setEditingFolder] = useState<{ id: string; name: string; parentId?: string } | null>(null)
   const [parentFolderId, setParentFolderId] = useState<string | undefined>(undefined)
+  
   
   // Drag and drop state
   const [draggedItem, setDraggedItem] = useState<Item | null>(null)
@@ -211,8 +213,7 @@ export default function ItemsPage() {
   }
 
   const handleItemClick = (item: Item) => {
-    setSelectedItem(item)
-    setIsModalOpen(true)
+    router.push(`/items/${item.id}`)
   }
 
   const handleViewModeChange = (mode: ViewMode) => {
@@ -229,39 +230,7 @@ export default function ItemsPage() {
     }
   }
 
-  const handleModalClose = () => {
-    setIsModalOpen(false)
-    setSelectedItem(null)
-  }
 
-  const handleItemEdit = (item: Item) => {
-    // TODO: Navigate to edit page or open edit modal
-    console.log('Edit item:', item)
-    setIsModalOpen(false)
-  }
-
-  const handleItemDelete = async (item: Item) => {
-    if (!confirm('このアイテムを削除してもよろしいですか？')) {
-      return
-    }
-
-    try {
-      const response = await fetch(`/api/items/${item.id}`, {
-        method: 'DELETE',
-      })
-
-      if (!response.ok) {
-        throw new Error('アイテムの削除に失敗しました')
-      }
-
-      // Refresh items list
-      fetchItems()
-      setIsModalOpen(false)
-    } catch (err) {
-      console.error('Error deleting item:', err)
-      alert(err instanceof Error ? err.message : 'エラーが発生しました')
-    }
-  }
 
   // Update filters when selectedFolderId changes
   useEffect(() => {
@@ -351,36 +320,86 @@ export default function ItemsPage() {
   }
 
   const handleItemDrop = useCallback(async (itemData: Item, targetFolderId: string | null) => {
+    console.log('[ItemsPage] handleItemDrop called:', {
+      itemId: itemData.id,
+      itemName: itemData.name,
+      currentFolderId: itemData.folder?.id,
+      targetFolderId,
+      isSameFolder: itemData.folder?.id === targetFolderId || (!itemData.folder && !targetFolderId)
+    })
+
     // アイテムが既に同じフォルダにある場合は何もしない
     if (itemData.folder?.id === targetFolderId || (!itemData.folder && !targetFolderId)) {
+      console.log('[ItemsPage] Item already in target folder, skipping move')
       return
     }
 
     try {
+      const moveData = {
+        itemId: itemData.id,
+        folderId: targetFolderId,
+      }
+      
+      console.log('[ItemsPage] Sending move request:', moveData)
+      
       const response = await fetch('/api/items/move', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          itemId: itemData.id,
-          folderId: targetFolderId,
-        }),
+        body: JSON.stringify(moveData),
       })
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.message || 'アイテムの移動に失敗しました')
+        console.error('[ItemsPage] Move API error response:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData: errorData
+        })
+        throw new Error(errorData.message || errorData.error?.message || 'アイテムの移動に失敗しました')
       }
 
-      // アイテムリストを更新
-      fetchItems()
+      const result = await response.json()
+      console.log('[ItemsPage] Move successful:', result)
+
+      // アイテムの状態を即座に更新（楽観的更新）
+      setItems(prevItems => 
+        prevItems.map(item => 
+          item.id === itemData.id 
+            ? { ...item, folder: targetFolderId ? { id: targetFolderId, name: result.moveDetails?.toFolder?.name || '' } : null, folderId: targetFolderId }
+            : item
+        )
+      )
+      
+      // アイテムリストを再取得（確実に最新データを取得）
+      setTimeout(() => {
+        fetchItems()
+      }, 100)
+      
+      // フォルダツリーを更新（アイテム数表示の更新）
+      window.dispatchEvent(new Event('folder-updated'))
+      
+      // 成功メッセージを表示
+      if (result.message) {
+        // 一時的に成功メッセージを表示
+        const tempMessage = document.createElement('div')
+        tempMessage.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50'
+        tempMessage.textContent = result.message
+        document.body.appendChild(tempMessage)
+        
+        // 3秒後にメッセージを削除
+        setTimeout(() => {
+          if (tempMessage.parentNode) {
+            tempMessage.parentNode.removeChild(tempMessage)
+          }
+        }, 3000)
+      }
     } catch (err) {
-      console.error('Error moving item:', err)
+      console.error('[ItemsPage] Error moving item:', err)
       alert(err instanceof Error ? err.message : 'エラーが発生しました')
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [fetchItems])
 
   // Set folder props for sidebar on mount and update when selectedFolderId changes
   useEffect(() => {
@@ -428,7 +447,7 @@ export default function ItemsPage() {
         </div>
         {/* Desktop button */}
         <button
-          onClick={() => window.location.href = '/items/new'}
+          onClick={() => router.push('/items/new')}
           className="hidden sm:inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
           <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -438,7 +457,7 @@ export default function ItemsPage() {
         </button>
         {/* Mobile button */}
         <button
-          onClick={() => window.location.href = '/items/new'}
+          onClick={() => router.push('/items/new')}
           className="sm:hidden w-full flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
           <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -534,14 +553,6 @@ export default function ItemsPage() {
         />
       )}
 
-      {/* Item detail modal */}
-      <ItemDetailModal
-        item={selectedItem}
-        isOpen={isModalOpen}
-        onClose={handleModalClose}
-        onEdit={handleItemEdit}
-        onDelete={handleItemDelete}
-      />
 
       {/* Folder modal */}
       <FolderModal
@@ -552,6 +563,7 @@ export default function ItemsPage() {
         parentId={parentFolderId}
         mode={folderModalMode}
       />
+
     </div>
   )
 }
