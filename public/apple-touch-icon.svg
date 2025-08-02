@@ -1,0 +1,19 @@
+<svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background with rounded corners for iOS -->
+  <rect width="180" height="180" rx="40" fill="#2563eb"/>
+  
+  <!-- Box/package icon representing inventory management -->
+  <g transform="translate(30, 30)">
+    <!-- Main box -->
+    <path d="M10 40L60 20L110 40V100L60 120L10 100V40Z" fill="#ffffff" stroke="#e5e7eb" stroke-width="2"/>
+    
+    <!-- Box lines for 3D effect -->
+    <path d="M10 40L60 60L110 40" stroke="#cbd5e1" stroke-width="4" fill="none"/>
+    <path d="M60 60V120" stroke="#cbd5e1" stroke-width="4"/>
+    
+    <!-- Small dots representing items -->
+    <circle cx="30" cy="50" r="4" fill="#60a5fa"/>
+    <circle cx="90" cy="50" r="4" fill="#60a5fa"/>
+    <circle cx="60" cy="80" r="4" fill="#60a5fa"/>
+  </g>
+</svg>
