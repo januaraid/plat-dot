@@ -267,9 +267,30 @@ export function Sidebar({ isOpen, onClose, isMinimized = false, onToggleMinimize
           <div className="flex-shrink-0 border-t border-gray-200">
             <div className={`flex items-center ${isMinimized ? 'justify-center p-2' : 'justify-between p-4'}`}>
               {!isMinimized && (
-                <div className="text-xs text-gray-500">
-                  <p>plat-dot v1.0.0</p>
-                  <p>AI機能付き持ち物管理</p>
+                <div className="flex items-center text-xs text-gray-500">
+                  <div className="w-6 h-6 bg-blue-600 rounded-md flex items-center justify-center mr-2 p-1">
+                    {/* plat-dot logo icon */}
+                    <svg className="w-full h-full" viewBox="0 0 32 32" fill="none">
+                      {/* Box/package icon representing inventory management */}
+                      <g transform="translate(6, 6)">
+                        {/* Main box */}
+                        <path d="M2 8L10 4L18 8V18L10 22L2 18V8Z" fill="#ffffff" stroke="#e5e7eb" strokeWidth="0.5"/>
+                        
+                        {/* Box lines for 3D effect */}
+                        <path d="M2 8L10 12L18 8" stroke="#cbd5e1" strokeWidth="1" fill="none"/>
+                        <path d="M10 12V22" stroke="#cbd5e1" strokeWidth="1"/>
+                        
+                        {/* Small dots representing items */}
+                        <circle cx="6" cy="10" r="1" fill="#60a5fa"/>
+                        <circle cx="14" cy="10" r="1" fill="#60a5fa"/>
+                        <circle cx="10" cy="15" r="1" fill="#60a5fa"/>
+                      </g>
+                    </svg>
+                  </div>
+                  <div>
+                    <p>plat-dot v1.0.0</p>
+                    <p>AI機能付き持ち物管理</p>
+                  </div>
                 </div>
               )}
               
