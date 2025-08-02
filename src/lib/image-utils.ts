@@ -23,11 +23,11 @@ export function getThumbnailDir(size: ThumbnailSize): string {
 
 /**
  * サムネイルのファイル名を生成
+ * オリジナルファイル名と同じ名前でサムネイルを生成
  */
 export function getThumbnailFileName(originalFileName: string, size: ThumbnailSize): string {
-  const ext = originalFileName.match(/\.[^.]+$/)?.[0] || '.jpg'
-  const nameWithoutExt = originalFileName.replace(/\.[^.]+$/, '')
-  return `${nameWithoutExt}_${size}${ext}`
+  // サムネイルはサイズ別のディレクトリに分けるので、ファイル名は元と同じにする
+  return originalFileName
 }
 
 /**

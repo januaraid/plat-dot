@@ -116,8 +116,13 @@ export default function OptimizedImagesTestPage() {
 
   // 画像クリック時のモーダル表示
   const handleImageClick = (image: ImageWithThumbnails) => {
+    // URLを正しいAPIパスに変換
+    const normalizedUrl = image.url.startsWith('/uploads/') 
+      ? image.url.replace('/uploads/', '/api/uploads/') 
+      : image.url
+    
     setModalImage({
-      src: image.url,
+      src: normalizedUrl,
       alt: `${itemInfo?.name || 'アイテム'} - 画像 ${image.order + 1}`,
       caption: `${itemInfo?.name || 'アイテム'} - 画像 ${image.order + 1} (${((image.size) / 1024).toFixed(1)}KB)`
     })
@@ -125,13 +130,19 @@ export default function OptimizedImagesTestPage() {
   }
 
   // ギャラリー用の画像データ変換
-  const galleryImages = images.map(image => ({
-    id: image.id,
-    src: image.url,
-    alt: `${itemInfo?.name || 'アイテム'} - 画像 ${image.order + 1}`,
-    thumbnailSrc: image.thumbnails?.[imageSize],
-    caption: `${itemInfo?.name || 'アイテム'} - 画像 ${image.order + 1}`
-  }))
+  const galleryImages = images.map(image => {
+    const normalizedUrl = image.url.startsWith('/uploads/') 
+      ? image.url.replace('/uploads/', '/api/uploads/') 
+      : image.url
+    
+    return {
+      id: image.id,
+      src: normalizedUrl,
+      alt: `${itemInfo?.name || 'アイテム'} - 画像 ${image.order + 1}`,
+      thumbnailSrc: image.thumbnails?.[imageSize],
+      caption: `${itemInfo?.name || 'アイテム'} - 画像 ${image.order + 1}`
+    }
+  })
 
   if (status === 'loading') {
     return <div className="p-8">Loading...</div>

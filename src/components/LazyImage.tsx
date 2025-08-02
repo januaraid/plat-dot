@@ -2,6 +2,16 @@
 
 import { useState, useRef, useEffect } from 'react'
 
+/**
+ * 画像URLを正しいAPIパスに変換
+ */
+function normalizeImageUrl(url: string): string {
+  if (url.startsWith('/uploads/')) {
+    return url.replace('/uploads/', '/api/uploads/')
+  }
+  return url
+}
+
 interface LazyImageProps {
   src: string
   alt: string
@@ -62,7 +72,7 @@ export function LazyImage({
     setError(true)
   }
 
-  const displaySrc = isInView ? src : (thumbnailSrc || src)
+  const displaySrc = isInView ? normalizeImageUrl(src) : (thumbnailSrc || normalizeImageUrl(src))
 
   return (
     <div 
@@ -204,7 +214,7 @@ export function ResponsiveImage({
       {/* Responsive image */}
       {isInView && (
         <img
-          src={thumbnails?.medium || src}
+          src={thumbnails?.medium || normalizeImageUrl(src)}
           srcSet={srcSet}
           sizes={sizes}
           alt={alt}
