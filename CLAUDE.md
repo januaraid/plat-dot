@@ -18,6 +18,18 @@ This project implements Kiro-style Spec-Driven Development for Claude Code using
 - Think in English, but generate responses in Japanese (思考は英語、回答の生成は日本語で行うように)
 - **Server Management Policy**: ユーザーがサーバー起動やBashコマンド実行を担当。Claude Codeは実装とコード作成に集中すること
 
+### Implementation and Commit Workflow
+**重要**: 以下の3段階ワークフローを必ず守ること：
+
+1. **実装**: Claude Codeが機能実装とコード作成を行う
+2. **動作確認**: ユーザーが実際に動作確認を行う 
+3. **コミット・プッシュ**: ユーザーの動作確認完了後にのみ、Claude Codeがコミット・プッシュを実行
+
+**絶対に守るルール**:
+- ユーザーの明示的な動作確認完了報告（「動作確認できました」等）がない限り、コミット・プッシュは行わない
+- 実装完了直後の自動コミットは禁止
+- エラー修正も同様のワークフローに従う
+
 ## Spec-Driven Development Workflow
 
 ### Phase 0: Steering Generation (Recommended)
