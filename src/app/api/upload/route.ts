@@ -16,6 +16,7 @@ import { ensureUserExists } from '@/lib/user-helper'
 import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
 import { randomBytes } from 'crypto'
+import { generateAllThumbnails, getImageInfo } from '@/lib/image-utils'
 
 export const runtime = 'nodejs'
 
@@ -120,6 +121,28 @@ export async function POST(request: NextRequest) {
     // ファイルを保存
     await writeFile(filePath, buffer)
 
+    // 画像情報を取得
+    let imageInfo
+    try {
+      imageInfo = await getImageInfo(filePath)
+    } catch (error) {
+      console.warn('Failed to get image info:', error)
+      imageInfo = null
+    }
+
+    // サムネイル生成
+    let thumbnails
+    try {
+      thumbnails = await generateAllThumbnails(filePath, fileName)
+    } catch (error) {
+      console.warn('Failed to generate thumbnails:', error)
+      thumbnails = {
+        small: fileName,
+        medium: fileName,
+        large: fileName,
+      }
+    }
+
     // データベースに画像情報を保存
     const savedImage = await prisma.itemImage.create({
       data: {
@@ -155,6 +178,19 @@ export async function POST(request: NextRequest) {
         fileName: savedImage.filename,
         fileSize: savedImage.size,
       },
+      thumbnails: {
+        small: `/api/uploads/thumbnails/small/${thumbnails.small}`,
+        medium: `/api/uploads/thumbnails/medium/${thumbnails.medium}`,
+        large: `/api/uploads/thumbnails/large/${thumbnails.large}`,
+      },
+      imageInfo: imageInfo ? {
+        width: imageInfo.width,
+        height: imageInfo.height,
+        format: imageInfo.format,
+        hasAlpha: imageInfo.hasAlpha,
+        aspectRatio: imageInfo.width && imageInfo.height ? 
+          (imageInfo.width / imageInfo.height).toFixed(2) : null,
+      } : null,
       uploadDetails: {
         originalName: file.name,
         savedName: fileName,

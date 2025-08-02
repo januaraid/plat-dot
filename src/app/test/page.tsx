@@ -70,6 +70,19 @@ export default function TestIndexPage() {
             → テストページを開く
           </div>
         </Link>
+        
+        <Link 
+          href="/test/optimized-images" 
+          className="block bg-white shadow rounded-lg p-6 hover:shadow-lg transition-shadow"
+        >
+          <h2 className="text-xl font-semibold mb-2">画像表示最適化</h2>
+          <p className="text-gray-600">
+            サムネイル、遅延読み込み、レスポンシブ画像をテストできます。
+          </p>
+          <div className="mt-4 text-sm text-blue-500">
+            → テストページを開く
+          </div>
+        </Link>
       </div>
       
       <div className="mt-12 bg-white shadow rounded-lg p-6">
@@ -119,9 +132,10 @@ export default function TestIndexPage() {
             <div>
               <h4 className="font-medium text-gray-800">画像アップロードAPI:</h4>
               <ul className="text-gray-600 space-y-1 ml-4">
-                <li>• <code>POST /api/upload</code> - 画像アップロード（形式・サイズ検証付き）</li>
+                <li>• <code>POST /api/upload</code> - 画像アップロード（サムネイル自動生成付き）</li>
                 <li>• <code>GET /api/upload</code> - アップロード設定情報取得</li>
-                <li>• <code>GET /api/uploads/[fileName]</code> - アップロード済み画像取得</li>
+                <li>• <code>GET /api/uploads/[fileName]</code> - オリジナル画像取得</li>
+                <li>• <code>GET /api/uploads/thumbnails/[size]/[fileName]</code> - サムネイル画像取得</li>
               </ul>
             </div>
             <div>
