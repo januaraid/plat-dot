@@ -19,6 +19,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
+    updateAge: 24 * 60 * 60, // 24時間（セッション更新間隔を1日に制限）
   },
   debug: process.env.NODE_ENV === "development",
   pages: {
