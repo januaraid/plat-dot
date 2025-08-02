@@ -31,8 +31,8 @@ export const apiRateLimitConfigs: Record<string, RateLimitConfig> = {
     uniqueTokenPerInterval: 5, // 15分間に5回まで
   },
   '/api/auth/signout': {
-    interval: 15 * 60 * 1000, // 15分
-    uniqueTokenPerInterval: 5, // 15分間に5回まで
+    interval: 5 * 60 * 1000, // 5分
+    uniqueTokenPerInterval: 10, // 5分間に10回まで
   },
   // アップロード関連も制限
   '/api/upload': {
