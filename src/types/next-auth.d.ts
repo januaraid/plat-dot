@@ -11,6 +11,7 @@ declare module 'next-auth' {
       aiUsageCount?: number
       aiUsageLimit?: number
     }
+    hasSession: boolean
   }
 
   interface User {

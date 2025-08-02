@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, ReactNode } from 'react'
 
 interface FolderProps {
-  selectedFolderId?: string
+  selectedFolderId: string | null
   onFolderSelect: (folderId: string | null) => void
   onFolderCreate?: (parentId?: string) => void
   onFolderEdit?: (folder: { id: string; name: string; parentId?: string }) => void
