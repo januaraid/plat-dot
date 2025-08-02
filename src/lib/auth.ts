@@ -68,6 +68,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.aiUsageCount = 0
         session.user.aiUsageLimit = 20
       }
+      
+      // セッションが有効であることを示すフラグを追加
+      session.hasSession = true
       return session
     },
   },

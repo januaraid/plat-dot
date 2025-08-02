@@ -21,6 +21,7 @@ interface DashboardStats {
     category: string | null
     folderName: string | null
     createdAt: string
+    updatedAt?: string
     image: string | null
   }[]
   recentUpdatedItems: {
@@ -28,6 +29,7 @@ interface DashboardStats {
     name: string
     category: string | null
     folderName: string | null
+    createdAt: string
     updatedAt: string
     image: string | null
   }[]
@@ -181,8 +183,8 @@ export default function DashboardPage() {
             {item.category || '未分類'} • {item.folderName || '未分類'}
           </div>
           <div className="text-xs text-gray-400">
-            {showUpdatedAt 
-              ? new Date('updatedAt' in item ? item.updatedAt : item.createdAt).toLocaleDateString('ja-JP')
+            {showUpdatedAt && item.updatedAt
+              ? new Date(item.updatedAt).toLocaleDateString('ja-JP')
               : new Date(item.createdAt).toLocaleDateString('ja-JP')
             }
           </div>
@@ -250,7 +252,7 @@ export default function DashboardPage() {
           <h2 className="text-lg font-semibold text-gray-900 mb-4">カテゴリ別分布</h2>
           {stats.itemStats.categories.length > 0 ? (
             <div className="space-y-3">
-              {stats.itemStats.categories.slice(0, 5).map((category, index) => (
+              {stats.itemStats.categories.slice(0, 5).map((category) => (
                 <div key={category.category} className="flex items-center justify-between">
                   <div className="text-sm text-gray-700">{category.category}</div>
                   <div className="text-sm font-medium text-gray-900">{category.count}件</div>
