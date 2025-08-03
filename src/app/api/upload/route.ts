@@ -13,10 +13,8 @@ import {
 } from '@/lib/validations/upload'
 import { ZodError } from 'zod'
 import { ensureUserExists } from '@/lib/user-helper'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
+import { put } from '@vercel/blob'
 import { randomBytes } from 'crypto'
-import { generateAllThumbnails, getImageInfo } from '@/lib/image-utils'
 
 export const runtime = 'nodejs'
 
@@ -31,11 +29,10 @@ function generateFileName(originalName: string): string {
 }
 
 /**
- * アップロードディレクトリのパスを取得
+ * Vercel Blob用のファイルパスを生成
  */
-function getUploadDir(): string {
-  // プロジェクトルートからの相対パス
-  return join(process.cwd(), 'uploads')
+function getBlobPath(fileName: string, itemId: string): string {
+  return `items/${itemId}/${fileName}`
 }
 
 /**
@@ -106,48 +103,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // ファイルの内容を読み取る
-    const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
-
     // ファイル名の生成
     const fileName = generateFileName(file.name)
-    const uploadDir = getUploadDir()
-    const filePath = join(uploadDir, fileName)
+    const blobPath = getBlobPath(fileName, validatedData.itemId)
 
-    // アップロードディレクトリが存在しない場合は作成
-    await mkdir(uploadDir, { recursive: true })
-
-    // ファイルを保存
-    await writeFile(filePath, buffer)
-
-    // 画像情報を取得
-    let imageInfo
-    try {
-      imageInfo = await getImageInfo(filePath)
-    } catch (error) {
-      console.warn('Failed to get image info:', error)
-      imageInfo = null
-    }
-
-    // サムネイル生成
-    let thumbnails
-    try {
-      thumbnails = await generateAllThumbnails(filePath, fileName)
-    } catch (error) {
-      console.warn('Failed to generate thumbnails:', error)
-      thumbnails = {
-        small: fileName,
-        medium: fileName,
-        large: fileName,
-      }
-    }
+    // Vercel Blobにファイルをアップロード
+    const blob = await put(blobPath, file, {
+      access: 'public',
+      contentType: file.type,
+    })
 
     // データベースに画像情報を保存
     const savedImage = await prisma.itemImage.create({
       data: {
         itemId: validatedData.itemId,
-        url: `/uploads/${fileName}`,
+        url: blob.url,
         filename: fileName,
         size: file.size,
         mimeType: file.type,
@@ -174,27 +144,16 @@ export async function POST(request: NextRequest) {
       message: '画像をアップロードしました',
       image: {
         ...savedImage,
-        // 画像URLをAPI経由のパスに変換
-        url: savedImage.url.startsWith('/uploads/') 
-          ? savedImage.url.replace('/uploads/', '/api/uploads/')
-          : savedImage.url,
         // クライアント側の互換性のため、キャメルケースのプロパティも追加
         fileName: savedImage.filename,
         fileSize: savedImage.size,
       },
-      thumbnails: {
-        small: `/api/uploads/thumbnails/small/${thumbnails.small}`,
-        medium: `/api/uploads/thumbnails/medium/${thumbnails.medium}`,
-        large: `/api/uploads/thumbnails/large/${thumbnails.large}`,
+      blob: {
+        url: blob.url,
+        pathname: blob.pathname,
+        contentType: blob.contentType,
+        contentDisposition: blob.contentDisposition,
       },
-      imageInfo: imageInfo ? {
-        width: imageInfo.width,
-        height: imageInfo.height,
-        format: imageInfo.format,
-        hasAlpha: imageInfo.hasAlpha,
-        aspectRatio: imageInfo.width && imageInfo.height ? 
-          (imageInfo.width / imageInfo.height).toFixed(2) : null,
-      } : null,
       uploadDetails: {
         originalName: file.name,
         savedName: fileName,
@@ -202,6 +161,7 @@ export async function POST(request: NextRequest) {
         sizeFormatted: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
         type: file.type,
         itemName: savedImage.item.name,
+        blobPath: blobPath,
       },
     })
   } catch (error) {
@@ -209,16 +169,10 @@ export async function POST(request: NextRequest) {
       return validationErrorResponse(error, '画像アップロードのデータに誤りがあります')
     }
     
-    // ファイルシステムエラー
-    if (error && typeof error === 'object' && 'code' in error) {
-      if (error.code === 'EACCES') {
-        console.error('Upload directory permission error:', error)
-        return ErrorResponses.internalError('ファイルの保存に失敗しました（権限エラー）')
-      }
-      if (error.code === 'ENOSPC') {
-        console.error('Disk space error:', error)
-        return ErrorResponses.internalError('ファイルの保存に失敗しました（ディスク容量不足）')
-      }
+    // Vercel Blobエラー
+    if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string' && error.message.includes('blob')) {
+      console.error('Vercel Blob upload error:', error)
+      return ErrorResponses.internalError('ファイルのアップロードに失敗しました')
     }
     
     // データベースエラーの場合

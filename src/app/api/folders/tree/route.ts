@@ -137,17 +137,17 @@ export async function GET(request: NextRequest) {
     const depthStats = await prisma.$queryRaw<Array<{depth: bigint, count: bigint}>>`
       WITH RECURSIVE folder_depths AS (
         -- Base case: root folders (depth 1)
-        SELECT id, name, parentId, 1 as depth, userId
-        FROM folders
-        WHERE parentId IS NULL AND userId = ${dbUser.id}
+        SELECT "id", "name", "parentId", 1 as depth, "userId"
+        FROM "folders"
+        WHERE "parentId" IS NULL AND "userId" = ${dbUser.id}
         
         UNION ALL
         
         -- Recursive case: child folders
-        SELECT f.id, f.name, f.parentId, fd.depth + 1, f.userId
-        FROM folders f
-        INNER JOIN folder_depths fd ON f.parentId = fd.id
-        WHERE fd.depth < 3 AND f.userId = ${dbUser.id}
+        SELECT f."id", f."name", f."parentId", fd.depth + 1, f."userId"
+        FROM "folders" f
+        INNER JOIN folder_depths fd ON f."parentId" = fd."id"
+        WHERE fd.depth < 3 AND f."userId" = ${dbUser.id}
       )
       SELECT depth, COUNT(*) as count
       FROM folder_depths

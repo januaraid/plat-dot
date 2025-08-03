@@ -9,8 +9,7 @@ import {
 import { deleteImageSchema } from '@/lib/validations/upload'
 import { ZodError } from 'zod'
 import { ensureUserExists } from '@/lib/user-helper'
-import { unlink } from 'fs/promises'
-import { join } from 'path'
+import { del } from '@vercel/blob'
 
 export const runtime = 'nodejs'
 
@@ -65,14 +64,13 @@ export async function DELETE(
       return ErrorResponses.forbidden('この画像を削除する権限がありません')
     }
 
-    // ファイルシステムから画像を削除
+    // Vercel Blobから画像を削除
     try {
-      const uploadDir = join(process.cwd(), 'uploads')
-      const filePath = join(uploadDir, image.filename)
-      await unlink(filePath)
+      await del(image.url)
+      console.log(`Deleted blob: ${image.url}`)
     } catch (error) {
-      // ファイルが既に存在しない場合もエラーにしない
-      console.warn('Failed to delete file:', error)
+      // Blob削除に失敗してもデータベース削除は続行
+      console.warn('Failed to delete blob:', error)
     }
 
     // データベースから画像情報を削除

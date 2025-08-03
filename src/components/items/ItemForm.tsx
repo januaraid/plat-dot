@@ -319,16 +319,11 @@ export const ItemForm = memo(function ItemForm({
 
       await onSave(submitData)
       
-      // 新規作成時でプレビュー画像がある場合は、実際にアップロードは別途処理が必要
-      // TODO: 作成されたアイテムIDを取得して画像をアップロードする機能
-      if (mode === 'create' && images.length > 0) {
-        // 現状は画像アップロード機能をスキップ（将来実装予定）
-        console.log('新規作成時の画像アップロード処理をスキップしました')
-      }
-      
       // 成功時はローカルストレージをクリアしてからリダイレクト
       clearStorage()
       clearFocusPosition()
+      
+      // 新規作成時はプレビュー画像のLocalStorageクリアは親コンポーネントで処理
       router.push('/items')
     } catch (err) {
       console.error('Error saving item:', err)
@@ -608,7 +603,7 @@ export const ItemForm = memo(function ItemForm({
                   <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  新規作成時は、アイテム作成後に画像がアップロードされます。
+                  アイテム作成後に画像が自動でアップロードされます。
                 </p>
               </div>
             )}

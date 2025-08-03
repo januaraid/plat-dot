@@ -11,6 +11,7 @@ import {
 import { ZodError } from 'zod'
 import { Decimal } from 'decimal.js'
 import { ensureUserExists } from '@/lib/user-helper'
+import { del } from '@vercel/blob'
 
 export const runtime = 'nodejs'
 
@@ -259,10 +260,26 @@ export async function DELETE(
       return ErrorResponses.notFound('アイテム')
     }
 
-    // TODO: 画像ファイルの物理削除処理を追加
-    // item.images.forEach(image => {
-    //   deleteFile(image.url)
-    // })
+    // Vercel Blobから画像を削除
+    if (item.images.length > 0) {
+      try {
+        // 全ての画像URLを並列で削除
+        await Promise.all(
+          item.images.map(async (image) => {
+            try {
+              await del(image.url)
+              console.log(`Deleted blob: ${image.url}`)
+            } catch (blobError) {
+              console.warn(`Failed to delete blob: ${image.url}`, blobError)
+              // Blob削除に失敗してもアイテム削除は続行
+            }
+          })
+        )
+      } catch (error) {
+        console.warn('Failed to delete some blobs during item deletion:', error)
+        // Blob削除に失敗してもアイテム削除は続行
+      }
+    }
 
     // アイテムと関連データの削除（カスケード削除）
     await prisma.item.delete({
