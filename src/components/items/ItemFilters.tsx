@@ -34,15 +34,18 @@ export function ItemFilters({
   const [searchValue, setSearchValue] = useState(filters.search)
 
 
-  // Debounced search
+  // Debounced search with minimum character requirement
   useEffect(() => {
     const timer = setTimeout(() => {
       if (searchValue !== filters.search) {
-        onFiltersChange({
-          ...filters,
-          search: searchValue,
-          page: 1, // Reset to first page when searching
-        })
+        // 3文字以上または空文字の場合のみ検索実行
+        if (searchValue.length >= 3 || searchValue.length === 0) {
+          onFiltersChange({
+            ...filters,
+            search: searchValue,
+            page: 1, // Reset to first page when searching
+          })
+        }
       }
     }, 300)
 
@@ -89,7 +92,7 @@ export function ItemFilters({
           value={searchValue}
           onChange={(e) => setSearchValue(e.target.value)}
           className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-          placeholder="アイテムを検索..."
+          placeholder="アイテムを検索（3文字以上）..."
           disabled={loading}
         />
       </div>
