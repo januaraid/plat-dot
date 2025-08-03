@@ -14,6 +14,7 @@ export function Header({ onMenuToggle, isSidebarOpen }: HeaderProps) {
   const { data: session, status, update } = useSession()
   const pathname = usePathname()
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const [displayName, setDisplayName] = useState<string | null>(null)
   
   const isLandingPage = pathname === '/'
 
@@ -39,6 +40,25 @@ export function Header({ onMenuToggle, isSidebarOpen }: HeaderProps) {
     return status === 'loading' && !authStateRef.current.hasBeenAuthenticated
   }, [status])
 
+
+  // 認証されたユーザーの表示名を取得
+  useEffect(() => {
+    if (isAuthenticated && session?.user?.email) {
+      fetch('/api/settings')
+        .then(res => res.json())
+        .then(data => {
+          if (data.displayName) {
+            setDisplayName(data.displayName)
+          }
+        })
+        .catch(() => {
+          // エラー時はセッション名をフォールバック
+          setDisplayName(session.user?.name || null)
+        })
+    } else {
+      setDisplayName(null)
+    }
+  }, [isAuthenticated, session?.user?.email, session?.user?.name])
 
   // ページフォーカス時にセッション状態を更新（頻度制限付き）
   useEffect(() => {
@@ -151,7 +171,7 @@ export function Header({ onMenuToggle, isSidebarOpen }: HeaderProps) {
                   <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
                     <div className="py-1">
                       <div className="px-4 py-2 text-sm text-gray-700 border-b">
-                        <div className="font-medium">{session?.user?.name}</div>
+                        <div className="font-medium">{displayName || session?.user?.name}</div>
                         <div className="text-gray-500">{session?.user?.email}</div>
                       </div>
                       <Link
