@@ -26,6 +26,7 @@ function SessionMonitor({ children }: { children: ReactNode }) {
 export default function SessionProvider({ children }: SessionProviderProps) {
   return (
     <NextAuthSessionProvider 
+      basePath="/api/auth"
       refetchInterval={0} // セッション自動更新を無効化（無限更新バグ対策）
       refetchOnWindowFocus={false} // ウィンドウフォーカス時の自動更新も無効化
       refetchWhenOffline={false} // オフライン復帰時の自動更新も無効化
