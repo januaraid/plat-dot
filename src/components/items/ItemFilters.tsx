@@ -34,23 +34,23 @@ export function ItemFilters({
   const [searchValue, setSearchValue] = useState(filters.search)
 
 
-  // Debounced search with minimum character requirement
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (searchValue !== filters.search) {
-        // 3文字以上または空文字の場合のみ検索実行
-        if (searchValue.length >= 3 || searchValue.length === 0) {
-          onFiltersChange({
-            ...filters,
-            search: searchValue,
-            page: 1, // Reset to first page when searching
-          })
-        }
-      }
-    }, 300)
+  // Manual search execution
+  const executeSearch = () => {
+    if (searchValue !== filters.search) {
+      onFiltersChange({
+        ...filters,
+        search: searchValue,
+        page: 1, // Reset to first page when searching
+      })
+    }
+  }
 
-    return () => clearTimeout(timer)
-  }, [searchValue, filters, onFiltersChange])
+  // Handle Enter key press for search
+  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      executeSearch()
+    }
+  }
 
   const handleFilterChange = (key: keyof FilterOptions, value: any) => {
     const newFilters = {
@@ -81,20 +81,48 @@ export function ItemFilters({
   return (
     <div className="space-y-4">
       {/* Search bar */}
-      <div className="relative">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
+      <div className="relative flex gap-2">
+        <div className="relative flex-1">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <input
+            type="text"
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
+            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            placeholder="アイテムを検索..."
+            disabled={loading}
+          />
         </div>
-        <input
-          type="text"
-          value={searchValue}
-          onChange={(e) => setSearchValue(e.target.value)}
-          className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-          placeholder="アイテムを検索（3文字以上）..."
+        <button
+          onClick={executeSearch}
+          className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
           disabled={loading}
-        />
+        >
+          検索
+        </button>
+        {searchValue && (
+          <button
+            onClick={() => {
+              setSearchValue('')
+              if (filters.search) {
+                onFiltersChange({
+                  ...filters,
+                  search: '',
+                  page: 1,
+                })
+              }
+            }}
+            className="px-3 py-2 text-gray-500 hover:text-gray-700 focus:outline-none"
+            title="検索をクリア"
+          >
+            ✕
+          </button>
+        )}
       </div>
 
       {/* Filter controls */}
