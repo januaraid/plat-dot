@@ -25,14 +25,24 @@ export async function ensureUserExists(user: {
       })
       return newUser
     } else {
-      // 既存ユーザーの情報を更新
+      // 既存ユーザーの情報を更新（nameとimageは既存の値がない場合のみ更新）
+      const updateData: any = {
+        updatedAt: new Date(),
+      }
+      
+      // 既存ユーザーにnameがない場合のみ更新
+      if (!existingUser.name && user.name) {
+        updateData.name = user.name
+      }
+      
+      // 既存ユーザーにimageがない場合のみ更新
+      if (!existingUser.image && user.image) {
+        updateData.image = user.image
+      }
+      
       const updatedUser = await prisma.user.update({
         where: { email: user.email },
-        data: {
-          name: user.name,
-          image: user.image,
-          updatedAt: new Date(),
-        },
+        data: updateData,
       })
       return updatedUser
     }

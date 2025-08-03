@@ -227,10 +227,10 @@ const SettingsPage = memo(function SettingsPage() {
             ) : settings ? (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                     表示名
                   </label>
-                  <div className="flex space-x-3">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                     <input
                       type="text"
                       value={displayNameInput}
@@ -241,13 +241,13 @@ const SettingsPage = memo(function SettingsPage() {
                         }
                       }}
                       disabled={saving}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm sm:text-base focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50"
                       placeholder="表示名を入力してください"
                     />
                     <button
                       onClick={handleSaveDisplayName}
                       disabled={saving || displayNameInput.trim() === settings.displayName || displayNameInput.trim() === ''}
-                      className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center"
+                      className="px-3 sm:px-4 py-2 bg-blue-600 text-white text-xs sm:text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center whitespace-nowrap"
                     >
                       {saving ? (
                         <>
@@ -261,7 +261,7 @@ const SettingsPage = memo(function SettingsPage() {
                   </div>
                   {displayNameInput !== settings.displayName && displayNameInput.trim() !== '' && (
                     <p className="text-xs text-gray-500 mt-1">
-                      変更を保存するには「保存」ボタンをクリックしてください
+                      変更を保存するには「保存」ボタンをタップしてください
                     </p>
                   )}
                 </div>
@@ -323,24 +323,24 @@ const SettingsPage = memo(function SettingsPage() {
           </div>
 
           {/* 表示設定 */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">表示設定</h2>
+          <div className="bg-white shadow rounded-lg p-4 sm:p-6">
+            <h2 className="text-base sm:text-lg font-medium text-gray-900 mb-3 sm:mb-4">表示設定</h2>
             
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-medium text-gray-900">ダークモード</h3>
-                  <p className="text-sm text-gray-500">暗いテーマで表示します（準備中）</p>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1">
+                  <h3 className="text-sm sm:text-base font-medium text-gray-900">ダークモード</h3>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-0.5">暗いテーマで表示します（準備中）</p>
                 </div>
                 <button
                   onClick={() => handleDarkModeChange(!darkMode)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  className={`relative inline-flex h-5 w-10 sm:h-6 sm:w-11 items-center rounded-full transition-colors flex-shrink-0 ${
                     darkMode ? 'bg-blue-600' : 'bg-gray-200'
                   }`}
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      darkMode ? 'translate-x-6' : 'translate-x-1'
+                    className={`inline-block h-3 w-3 sm:h-4 sm:w-4 transform rounded-full bg-white transition-transform ${
+                      darkMode ? 'translate-x-6 sm:translate-x-6' : 'translate-x-1'
                     }`}
                   />
                 </button>
@@ -349,24 +349,24 @@ const SettingsPage = memo(function SettingsPage() {
           </div>
 
           {/* 通知設定 */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">通知設定</h2>
+          <div className="bg-white shadow rounded-lg p-4 sm:p-6">
+            <h2 className="text-base sm:text-lg font-medium text-gray-900 mb-3 sm:mb-4">通知設定</h2>
             
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-medium text-gray-900">価格変動通知</h3>
-                  <p className="text-sm text-gray-500">価格が大きく変動した際に通知します（準備中）</p>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1">
+                  <h3 className="text-sm sm:text-base font-medium text-gray-900">価格変動通知</h3>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-0.5">価格が大きく変動した際に通知します（準備中）</p>
                 </div>
                 <button
                   onClick={() => handleNotificationsChange(!notifications)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  className={`relative inline-flex h-5 w-10 sm:h-6 sm:w-11 items-center rounded-full transition-colors flex-shrink-0 ${
                     notifications ? 'bg-blue-600' : 'bg-gray-200'
                   }`}
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      notifications ? 'translate-x-6' : 'translate-x-1'
+                    className={`inline-block h-3 w-3 sm:h-4 sm:w-4 transform rounded-full bg-white transition-transform ${
+                      notifications ? 'translate-x-6 sm:translate-x-6' : 'translate-x-1'
                     }`}
                   />
                 </button>
@@ -379,34 +379,38 @@ const SettingsPage = memo(function SettingsPage() {
             <h2 className="text-lg font-medium text-gray-900 mb-4">データ管理</h2>
             
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                <div>
-                  <h3 className="font-medium text-gray-900">データエクスポート</h3>
-                  <p className="text-sm text-gray-500">
-                    アイテム、フォルダ、画像情報をJSONファイルでダウンロード（準備中）
-                  </p>
+              <div className="border border-gray-200 rounded-lg p-3 sm:p-4">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                  <div className="flex-1">
+                    <h3 className="text-sm sm:text-base font-medium text-gray-900">データエクスポート</h3>
+                    <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+                      アイテム、フォルダ、画像情報をJSONファイルでダウンロード（準備中）
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleExportData}
+                    className="bg-gray-400 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium hover:bg-gray-500 transition-colors whitespace-nowrap"
+                  >
+                    準備中
+                  </button>
                 </div>
-                <button
-                  onClick={handleExportData}
-                  className="bg-gray-400 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-500 transition-colors"
-                >
-                  準備中
-                </button>
               </div>
 
-              <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                <div>
-                  <h3 className="font-medium text-gray-900">プライバシーポリシー</h3>
-                  <p className="text-sm text-gray-500">
-                    データの取り扱いについて
-                  </p>
+              <div className="border border-gray-200 rounded-lg p-3 sm:p-4">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                  <div className="flex-1">
+                    <h3 className="text-sm sm:text-base font-medium text-gray-900">プライバシーポリシー</h3>
+                    <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+                      データの取り扱いについて
+                    </p>
+                  </div>
+                  <Link
+                    href="/privacy"
+                    className="bg-gray-600 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium hover:bg-gray-700 transition-colors whitespace-nowrap inline-block"
+                  >
+                    確認
+                  </Link>
                 </div>
-                <Link
-                  href="/privacy"
-                  className="bg-gray-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition-colors"
-                >
-                  確認
-                </Link>
               </div>
             </div>
           </div>
@@ -416,19 +420,21 @@ const SettingsPage = memo(function SettingsPage() {
             <h2 className="text-lg font-medium text-gray-900 mb-4">アカウント管理</h2>
             
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg bg-gray-50">
-                <div>
-                  <h3 className="font-medium text-gray-900">アカウント削除</h3>
-                  <p className="text-sm text-gray-700">
-                    アカウントと全てのデータを完全に削除します（準備中）
-                  </p>
+              <div className="border border-gray-200 rounded-lg bg-gray-50 p-3 sm:p-4">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                  <div className="flex-1">
+                    <h3 className="text-sm sm:text-base font-medium text-gray-900">アカウント削除</h3>
+                    <p className="text-xs sm:text-sm text-gray-700 mt-0.5">
+                      アカウントと全てのデータを完全に削除します（準備中）
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleDeleteAccount}
+                    className="bg-gray-400 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium hover:bg-gray-500 transition-colors whitespace-nowrap"
+                  >
+                    準備中
+                  </button>
                 </div>
-                <button
-                  onClick={handleDeleteAccount}
-                  className="bg-gray-400 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-500 transition-colors"
-                >
-                  準備中
-                </button>
               </div>
             </div>
           </div>
