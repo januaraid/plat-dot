@@ -41,7 +41,7 @@ const NewItemPage = memo(function NewItemPage() {
     }
   }, [isAuthenticated, isAuthLoading, router])
 
-  const handleSave = async (itemData: any) => {
+  const handleSave = async (itemData: any): Promise<void> => {
     const createdItem = await createItem(itemData)
     
     // プレビュー画像がある場合は、作成されたアイテムにアップロード
@@ -63,8 +63,6 @@ const NewItemPage = memo(function NewItemPage() {
         // 画像アップロードに失敗してもアイテム作成は成功として扱う
       }
     }
-    
-    return createdItem
   }
 
   // 認証チェック中のローディング
