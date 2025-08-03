@@ -256,28 +256,61 @@ export default function DashboardPage() {
 
   // 全アイテム合計の価格推移グラフデータ
   const totalPriceData = trendData ? (() => {
-    // 日付ごとにグループ化して合計値を計算
-    const dateGroups: Record<string, { total: number; count: number; date: string }> = {}
+    // 各アイテムの価格履歴を整理
+    const itemPriceHistory: Record<string, { date: string; price: number }[]> = {}
     
     trendData.itemTrends.forEach(item => {
+      itemPriceHistory[item.itemId] = []
       item.priceData.forEach(data => {
-        const date = data.date.split('T')[0] // YYYY-MM-DD形式
-        if (!dateGroups[date]) {
-          dateGroups[date] = { total: 0, count: 0, date }
-        }
         if (data.avgPrice) {
-          dateGroups[date].total += data.avgPrice
-          dateGroups[date].count++
+          // 日本時間に変換してYYYY-MM-DD形式を取得
+          const jstDate = new Date(data.date)
+          const jstDateString = jstDate.toLocaleDateString('ja-JP', { 
+            year: 'numeric', 
+            month: '2-digit', 
+            day: '2-digit',
+            timeZone: 'Asia/Tokyo'
+          }).replace(/\//g, '-')
+          
+          itemPriceHistory[item.itemId].push({
+            date: jstDateString,
+            price: data.avgPrice
+          })
         }
       })
+      // 日付順にソート
+      itemPriceHistory[item.itemId].sort((a, b) => 
+        new Date(a.date).getTime() - new Date(b.date).getTime()
+      )
     })
     
-    // 日付順にソートして最新20日分を取得
-    const sortedData = Object.values(dateGroups)
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      .slice(-20)
+    // 全体の日付範囲を取得
+    const allDates = new Set<string>()
+    Object.values(itemPriceHistory).forEach(history => {
+      history.forEach(data => allDates.add(data.date))
+    })
+    const sortedDates = Array.from(allDates).sort()
     
-    return sortedData
+    // 各日付での合計を計算（価格は前の日から引き継ぐ）
+    const itemLatestPrices: Record<string, number> = {}
+    const processedData = sortedDates.map(date => {
+      // 各アイテムの該当日付の価格を更新
+      Object.entries(itemPriceHistory).forEach(([itemId, history]) => {
+        const priceData = history.find(h => h.date === date)
+        if (priceData) {
+          itemLatestPrices[itemId] = priceData.price
+        }
+      })
+      
+      // 現在の価格がある全アイテムの合計を計算
+      const total = Object.values(itemLatestPrices).reduce((sum, price) => sum + price, 0)
+      const itemCount = Object.keys(itemLatestPrices).length
+      
+      return { date, total, itemCount }
+    })
+    
+    // 最新30日分を取得
+    return processedData.slice(-30)
   })() : null
 
   const lineChartData = totalPriceData ? {
@@ -371,8 +404,22 @@ export default function DashboardPage() {
           </div>
           <div className="text-xs text-gray-400">
             {showUpdatedAt && item.updatedAt
-              ? new Date(item.updatedAt).toLocaleDateString('ja-JP')
-              : new Date(item.createdAt).toLocaleDateString('ja-JP')
+              ? new Date(item.updatedAt).toLocaleString('ja-JP', { 
+                  timeZone: 'Asia/Tokyo',
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })
+              : new Date(item.createdAt).toLocaleString('ja-JP', { 
+                  timeZone: 'Asia/Tokyo',
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })
             }
           </div>
         </div>
