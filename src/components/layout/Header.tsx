@@ -42,6 +42,11 @@ export function Header({ onMenuToggle, isSidebarOpen }: HeaderProps) {
 
   // ページフォーカス時にセッション状態を更新（頻度制限付き）
   useEffect(() => {
+    // ランディングページの場合は更新処理をスキップ
+    if (isLandingPage) {
+      return
+    }
+
     let lastUpdateTime = 0
     const UPDATE_INTERVAL = 30000 // 30秒間隔で制限
 
@@ -56,7 +61,7 @@ export function Header({ onMenuToggle, isSidebarOpen }: HeaderProps) {
 
     window.addEventListener('focus', handleFocus)
     return () => window.removeEventListener('focus', handleFocus)
-  }, [update])
+  }, [update, isLandingPage])
 
   const handleSignOut = () => {
     signOut()

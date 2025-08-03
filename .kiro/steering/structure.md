@@ -32,63 +32,116 @@ plat-dot/
 
 ## Subdirectory Structures
 
-### App Router Structure (`src/app/`)
+### App Router Structure (`src/app/`) ✨ **UPDATED**
 ```
 src/app/
 ├── api/                      # API Route Handlers
+│   ├── ai/                   # AI機能エンドポイント ✨ NEW
+│   │   ├── recognize/        # 画像認識API
+│   │   ├── search-prices/    # 価格調査API
+│   │   ├── usage/            # AI使用量管理
+│   │   └── test/             # AIテスト用
 │   ├── auth/                 # 認証エンドポイント
-│   │   ├── [...nextauth]/   # NextAuth.js動的ルート
-│   │   └── session/         # セッション管理
-│   ├── items/               # アイテム管理API
+│   │   └── [...nextauth]/    # NextAuth.js動的ルート
+│   ├── dashboard/            # ダッシュボードAPI ✨ NEW
+│   │   ├── stats/            # 統計情報
+│   │   ├── price-trends/     # 価格推移データ
+│   │   └── value-summary/    # 価値サマリー
+│   ├── folders/              # フォルダ管理API
+│   │   ├── [id]/            # 個別フォルダ操作
+│   │   ├── tree/            # フォルダツリー
+│   │   └── move/            # フォルダ移動
+│   ├── images/               # 画像管理API
+│   │   └── [id]/            # 個別画像操作
+│   ├── items/                # アイテム管理API
 │   │   ├── [id]/            # 個別アイテム操作
+│   │   │   ├── images/      # アイテム画像管理
+│   │   │   └── price-history/ # 価格履歴
+│   │   ├── suggestions/     # 入力補完 ✨ NEW
+│   │   ├── move/            # アイテム移動
 │   │   └── route.ts         # アイテム一覧・作成
+│   ├── upload/              # ファイルアップロード
+│   ├── uploads/             # アップロードファイル配信
 │   └── test/                # テスト用エンドポイント
 ├── auth/                    # 認証関連ページ
 │   ├── signin/              # サインインページ
 │   └── error/               # 認証エラーページ
+├── dashboard/               # ダッシュボードページ ✨ NEW
+├── items/                   # アイテム管理ページ
+│   ├── [id]/               # アイテム詳細・編集
+│   │   ├── edit/           # 編集ページ
+│   │   └── images/         # 画像管理ページ
+│   └── new/                # 新規作成ページ
 ├── test/                    # テストページ（開発用）
-│   └── items/               # アイテム管理テスト
+│   ├── ai/                 # AIテスト
+│   ├── folders/            # フォルダテスト
+│   ├── images/             # 画像テスト
+│   └── items/              # アイテムテスト
 ├── debug/                   # デバッグページ（開発用）
 ├── globals.css              # グローバルスタイル
 ├── layout.tsx               # ルートレイアウト
-└── page.tsx                 # ホームページ
+└── page.tsx                 # ランディングページ ✨ UPDATED
 ```
 
-### Components Structure (`src/components/`)
+### Components Structure (`src/components/`) ✨ **UPDATED**
 ```
 src/components/
+├── charts/                 # チャート関連コンポーネント ✨ NEW
+│   └── PriceTrendChart.tsx # 価格推移チャート
+├── debug/                  # デバッグ用コンポーネント
+│   └── PerformanceMonitor.tsx # パフォーマンス監視
 ├── folders/                # フォルダ管理コンポーネント
 │   ├── FolderTree.tsx     # フォルダツリー表示
 │   ├── FolderModal.tsx    # フォルダ作成・編集モーダル
 │   └── Breadcrumb.tsx     # パンくずナビゲーション
 ├── items/                  # アイテム管理コンポーネント
 │   ├── ItemCard.tsx       # アイテムカード表示
-│   ├── ItemForm.tsx       # アイテム作成・編集フォーム
+│   ├── ItemForm.tsx       # アイテム作成・編集フォーム ✨ UPDATED
 │   ├── ItemGrid.tsx       # アイテムグリッド表示
 │   ├── ItemFilters.tsx    # フィルター・検索UI
+│   ├── ItemDetailModal.tsx # アイテム詳細モーダル
+│   ├── ItemFormModal.tsx  # アイテムフォームモーダル
+│   ├── ImageUpload.tsx    # 画像アップロード
+│   ├── ImageUploadModal.tsx # 画像アップロードモーダル
 │   └── Pagination.tsx     # ページネーション
-├── ui/                     # UI基底コンポーネント
-│   ├── Modal.tsx          # 汎用モーダル
-│   ├── Sidebar.tsx        # サイドバー
+├── layout/                 # レイアウトコンポーネント ✨ UPDATED
 │   ├── Header.tsx         # ヘッダー
-│   └── Navigation.tsx     # ナビゲーション
+│   ├── Sidebar.tsx        # サイドバー
+│   ├── MainLayout.tsx     # メインレイアウト
+│   └── Footer.tsx         # フッター
 ├── providers/              # Contextプロバイダー
 │   └── SessionProvider.tsx # NextAuth セッションプロバイダー
+├── ImageModal.tsx          # 画像モーダル
+├── LazyImage.tsx           # 遅延読み込み画像
 └── UploadedImage.tsx       # 画像表示コンポーネント
 ```
 
-### Additional Source Structure (`src/`)
+### Additional Source Structure (`src/`) ✨ **UPDATED**
 ```
 src/
 ├── contexts/               # React Context管理
 │   └── SidebarContext.tsx # サイドバー状態管理
-└── hooks/                  # カスタムReactフック
-    └── useItems.ts        # アイテム操作フック
+├── hooks/                  # カスタムReactフック ✨ UPDATED
+│   ├── useItems.ts        # アイテム操作フック
+│   ├── useFolders.ts      # フォルダ操作フック
+│   ├── useFoldersForForm.ts # フォームフォルダフック
+│   ├── useFormPersistence.ts # フォーム永続化フック
+│   ├── useImageUploadModal.ts # 画像アップロードモーダルフック
+│   └── usePerformanceProfiler.ts # パフォーマンス分析フック
+├── types/                  # TypeScript型定義
+│   └── next-auth.d.ts     # NextAuth型拡張
+└── middleware.ts          # Next.jsミドルウェア
 ```
 
-### Library Structure (`src/lib/`)
+### Library Structure (`src/lib/`) ✨ **UPDATED**
 ```
 src/lib/
+├── ai/                      # AI機能関連 ✨ NEW
+│   ├── gemini.ts           # Gemini API統合
+│   ├── usage.ts            # AI使用量管理
+│   ├── errors.ts           # AIエラーハンドリング
+│   ├── test-utils.ts       # AIテスト用ユーティリティ
+│   └── README.md           # AI機能ドキュメント
 ├── auth.ts                  # NextAuth設定
 ├── db.ts                    # データベース接続ヘルパー
 ├── prisma.ts                # Prismaクライアント
@@ -96,12 +149,15 @@ src/lib/
 ├── security.ts              # セキュリティユーティリティ
 ├── user-helper.ts           # ユーザー関連ヘルパー
 ├── utils.ts                 # 汎用ユーティリティ
-└── validations/             # Zodバリデーションスキーマ
+├── image-utils.ts           # 画像処理ユーティリティ ✨ NEW
+├── thumbnail-utils.ts       # サムネイル生成ユーティリティ ✨ NEW
+└── validations/             # Zodバリデーションスキーマ ✨ UPDATED
     ├── index.ts             # エクスポート集約
     ├── item.ts              # アイテムバリデーション
     ├── folder.ts            # フォルダバリデーション
     ├── upload.ts            # アップロードバリデーション
-    └── user.ts              # ユーザーバリデーション
+    ├── user.ts              # ユーザーバリデーション
+    └── ai.ts                # AIリクエストバリデーション ✨ NEW
 ```
 
 ## Code Organization Patterns
