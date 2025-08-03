@@ -149,6 +149,9 @@ export async function POST(request: NextRequest) {
         size: file.size,
         mimeType: file.type,
         order: validatedData.order || item._count.images,
+        thumbnailSmall: thumbnails.small,
+        thumbnailMedium: thumbnails.medium,
+        thumbnailLarge: thumbnails.large,
       },
       select: {
         id: true,

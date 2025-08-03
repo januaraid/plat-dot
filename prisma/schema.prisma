@@ -74,14 +74,18 @@ model Item {
 }
 
 model ItemImage {
-  id       String @id @default(cuid())
-  url      String
-  filename String
-  mimeType String
-  size     Int
-  order    Int    @default(0)
-  itemId   String
-  item     Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  id            String  @id @default(cuid())
+  url           String
+  filename      String
+  mimeType      String
+  size          Int
+  order         Int     @default(0)
+  itemId        String
+  item          Item    @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  // サムネイルURL
+  thumbnailSmall  String?
+  thumbnailMedium String?
+  thumbnailLarge  String?
 
   @@unique([itemId, order])
   @@map("item_images")

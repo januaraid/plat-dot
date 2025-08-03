@@ -3,11 +3,15 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { UploadedImage } from '@/components/UploadedImage'
+import { getImageThumbnailUrls } from '@/lib/thumbnail-utils'
 
 export interface ItemImage {
   id: string
   url: string
   order: number
+  thumbnailSmall?: string
+  thumbnailMedium?: string
+  thumbnailLarge?: string
 }
 
 export interface ItemFolder {
@@ -58,6 +62,9 @@ export function ItemCard({ item, viewMode = 'grid', onClick, onDragStart, onDrag
 
   const primaryImage = item.images.find(img => img.order === 0) || item.images[0]
   const hasMultipleImages = item.images.length > 1
+  
+  // サムネイルURLを生成
+  const thumbnailUrls = primaryImage ? getImageThumbnailUrls(primaryImage, item.id) : undefined
 
   const formatPrice = (price?: number | null) => {
     if (!price) return null
@@ -141,6 +148,8 @@ export function ItemCard({ item, viewMode = 'grid', onClick, onDragStart, onDrag
                   fill
                   className="object-cover"
                   onError={() => setImageError(true)}
+                  thumbnailSize="small"
+                  thumbnailUrls={thumbnailUrls}
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-400">
@@ -259,6 +268,8 @@ export function ItemCard({ item, viewMode = 'grid', onClick, onDragStart, onDrag
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-200"
             onError={() => setImageError(true)}
+            thumbnailSize="medium"
+            thumbnailUrls={thumbnailUrls}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-400">
