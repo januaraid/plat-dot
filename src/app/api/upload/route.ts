@@ -15,6 +15,7 @@ import { ZodError } from 'zod'
 import { ensureUserExists } from '@/lib/user-helper'
 import { put } from '@vercel/blob'
 import { randomBytes } from 'crypto'
+import { generateBlobThumbnails, getImageInfo } from '@/lib/image-utils'
 
 export const runtime = 'nodejs'
 
@@ -107,11 +108,37 @@ export async function POST(request: NextRequest) {
     const fileName = generateFileName(file.name)
     const blobPath = getBlobPath(fileName, validatedData.itemId)
 
+    // ファイルを一度だけBufferに変換（アップロードとサムネイル生成で共用）
+    const bytes = await file.arrayBuffer()
+    const buffer = Buffer.from(bytes)
+
     // Vercel Blobにファイルをアップロード
-    const blob = await put(blobPath, file, {
+    const blob = await put(blobPath, buffer, {
       access: 'public',
       contentType: file.type,
     })
+
+    // 画像情報を取得
+    let imageInfo
+    try {
+      imageInfo = await getImageInfo(buffer)
+    } catch (error) {
+      console.warn('Failed to get image info:', error)
+      imageInfo = null
+    }
+
+    // サムネイル生成
+    let thumbnails
+    try {
+      thumbnails = await generateBlobThumbnails(buffer, fileName, validatedData.itemId)
+    } catch (error) {
+      console.warn('Failed to generate thumbnails:', error)
+      thumbnails = {
+        small: blob.url,
+        medium: blob.url,
+        large: blob.url,
+      }
+    }
 
     // データベースに画像情報を保存
     const savedImage = await prisma.itemImage.create({
@@ -154,6 +181,19 @@ export async function POST(request: NextRequest) {
         contentType: blob.contentType,
         contentDisposition: blob.contentDisposition,
       },
+      thumbnails: {
+        small: thumbnails.small,
+        medium: thumbnails.medium,
+        large: thumbnails.large,
+      },
+      imageInfo: imageInfo ? {
+        width: imageInfo.width,
+        height: imageInfo.height,
+        format: imageInfo.format,
+        hasAlpha: imageInfo.hasAlpha,
+        aspectRatio: imageInfo.width && imageInfo.height ? 
+          (imageInfo.width / imageInfo.height).toFixed(2) : null,
+      } : null,
       uploadDetails: {
         originalName: file.name,
         savedName: fileName,
