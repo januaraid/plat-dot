@@ -260,19 +260,31 @@ export async function DELETE(
       return ErrorResponses.notFound('アイテム')
     }
 
-    // Vercel Blobから画像を削除
+    // Vercel Blobから画像とサムネイルを削除
     if (item.images.length > 0) {
       try {
-        // 全ての画像URLを並列で削除
+        // 全ての画像とサムネイルを並列で削除
         await Promise.all(
           item.images.map(async (image) => {
-            try {
-              await del(image.url)
-              console.log(`Deleted blob: ${image.url}`)
-            } catch (blobError) {
-              console.warn(`Failed to delete blob: ${image.url}`, blobError)
-              // Blob削除に失敗してもアイテム削除は続行
-            }
+            const urlsToDelete = [image.url]
+            
+            // サムネイルURLも削除対象に追加
+            if (image.thumbnailSmall) urlsToDelete.push(image.thumbnailSmall)
+            if (image.thumbnailMedium) urlsToDelete.push(image.thumbnailMedium)
+            if (image.thumbnailLarge) urlsToDelete.push(image.thumbnailLarge)
+            
+            // 全てのURLを並列で削除
+            await Promise.allSettled(
+              urlsToDelete.map(async (url) => {
+                try {
+                  await del(url)
+                  console.log(`Deleted blob: ${url}`)
+                } catch (blobError) {
+                  console.warn(`Failed to delete blob: ${url}`, blobError)
+                  // 個別のBlob削除に失敗してもアイテム削除は続行
+                }
+              })
+            )
           })
         )
       } catch (error) {

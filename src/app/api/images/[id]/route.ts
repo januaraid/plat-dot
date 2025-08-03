@@ -64,14 +64,26 @@ export async function DELETE(
       return ErrorResponses.forbidden('この画像を削除する権限がありません')
     }
 
-    // Vercel Blobから画像を削除
-    try {
-      await del(image.url)
-      console.log(`Deleted blob: ${image.url}`)
-    } catch (error) {
-      // Blob削除に失敗してもデータベース削除は続行
-      console.warn('Failed to delete blob:', error)
-    }
+    // Vercel Blobから画像とサムネイルを削除
+    const urlsToDelete = [image.url]
+    
+    // サムネイルURLも削除対象に追加
+    if (image.thumbnailSmall) urlsToDelete.push(image.thumbnailSmall)
+    if (image.thumbnailMedium) urlsToDelete.push(image.thumbnailMedium)
+    if (image.thumbnailLarge) urlsToDelete.push(image.thumbnailLarge)
+    
+    // 全てのURLを並列で削除
+    await Promise.allSettled(
+      urlsToDelete.map(async (url) => {
+        try {
+          await del(url)
+          console.log(`Deleted blob: ${url}`)
+        } catch (error) {
+          console.warn(`Failed to delete blob: ${url}`, error)
+          // 個別のBlob削除に失敗してもデータベース削除は続行
+        }
+      })
+    )
 
     // データベースから画像情報を削除
     await prisma.itemImage.delete({
