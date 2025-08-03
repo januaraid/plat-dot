@@ -65,6 +65,9 @@ export const ItemForm = memo(function ItemForm({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [aiRecognitionLoading, setAiRecognitionLoading] = useState(false)
   const [aiRecognitionResult, setAiRecognitionResult] = useState<any>(null)
+  const [categorySuggestions, setCategorySuggestions] = useState<string[]>([])
+  const [manufacturerSuggestions, setManufacturerSuggestions] = useState<string[]>([])
+  const [suggestionLoading, setSuggestionLoading] = useState({ category: false, manufacturer: false })
 
   // フォーム永続化
   const persistenceKey = formKey || `item-form-${mode}-${item?.id || 'new'}`
@@ -398,6 +401,76 @@ export const ItemForm = memo(function ItemForm({
     const currentUrl = window.location.pathname + window.location.search
     router.push(`/items/${itemId}/images?return=${encodeURIComponent(currentUrl)}`)
   }
+
+  // サジェスション取得関数
+  const fetchSuggestions = useCallback(async (type: 'category' | 'manufacturer', query: string) => {
+    if (!query.trim()) {
+      if (type === 'category') setCategorySuggestions([])
+      if (type === 'manufacturer') setManufacturerSuggestions([])
+      return
+    }
+
+    setSuggestionLoading(prev => ({ ...prev, [type]: true }))
+
+    try {
+      const response = await fetch(`/api/items/suggestions?type=${type}&query=${encodeURIComponent(query)}`)
+      if (response.ok) {
+        const data = await response.json()
+        if (type === 'category') {
+          setCategorySuggestions(data.suggestions || [])
+        } else {
+          setManufacturerSuggestions(data.suggestions || [])
+        }
+      }
+    } catch (error) {
+      console.error(`Failed to fetch ${type} suggestions:`, error)
+    } finally {
+      setSuggestionLoading(prev => ({ ...prev, [type]: false }))
+    }
+  }, [])
+
+  // カテゴリ入力変更時のサジェスション取得
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchSuggestions('category', formData.category || '')
+    }, 300) // 300ms デバウンス
+
+    return () => clearTimeout(timer)
+  }, [formData.category, fetchSuggestions])
+
+  // メーカー入力変更時のサジェスション取得
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchSuggestions('manufacturer', formData.manufacturer || '')
+    }, 300) // 300ms デバウンス
+
+    return () => clearTimeout(timer)
+  }, [formData.manufacturer, fetchSuggestions])
+
+  // datalistオプションを更新
+  useEffect(() => {
+    const categoryDatalist = document.getElementById('category-suggestions') as HTMLDataListElement
+    if (categoryDatalist) {
+      categoryDatalist.innerHTML = ''
+      categorySuggestions.forEach(suggestion => {
+        const option = document.createElement('option')
+        option.value = suggestion
+        categoryDatalist.appendChild(option)
+      })
+    }
+  }, [categorySuggestions])
+
+  useEffect(() => {
+    const manufacturerDatalist = document.getElementById('manufacturer-suggestions') as HTMLDataListElement
+    if (manufacturerDatalist) {
+      manufacturerDatalist.innerHTML = ''
+      manufacturerSuggestions.forEach(suggestion => {
+        const option = document.createElement('option')
+        option.value = suggestion
+        manufacturerDatalist.appendChild(option)
+      })
+    }
+  }, [manufacturerSuggestions])
 
   // AI画像認識処理
   const handleAIRecognition = useCallback(async () => {
@@ -954,18 +1027,24 @@ export const ItemForm = memo(function ItemForm({
                 <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
                   カテゴリ
                 </label>
-                <input
-                  type="text"
-                  id="category"
-                  value={formData.category}
-                  onChange={(e) => updateFormData('category', e.target.value)}
-                  className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 ${
-                    errors.category ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''
-                  }`}
-                  placeholder="カテゴリを入力"
-                  maxLength={50}
-                  disabled={isDisabled}
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    id="category"
+                    value={formData.category}
+                    onChange={(e) => updateFormData('category', e.target.value)}
+                    className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 ${
+                      errors.category ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''
+                    }`}
+                    placeholder="カテゴリを入力または選択"
+                    maxLength={50}
+                    disabled={isDisabled}
+                    list="category-suggestions"
+                  />
+                  <datalist id="category-suggestions">
+                    {/* データリストは動的に更新される */}
+                  </datalist>
+                </div>
                 {errors.category && (
                   <p className="mt-1 text-sm text-red-600">{errors.category}</p>
                 )}
@@ -976,18 +1055,24 @@ export const ItemForm = memo(function ItemForm({
                 <label htmlFor="manufacturer" className="block text-sm font-medium text-gray-700 mb-1">
                   メーカー
                 </label>
-                <input
-                  type="text"
-                  id="manufacturer"
-                  value={formData.manufacturer || ''}
-                  onChange={(e) => updateFormData('manufacturer', e.target.value)}
-                  className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 ${
-                    errors.manufacturer ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''
-                  }`}
-                  placeholder="メーカーを入力"
-                  maxLength={100}
-                  disabled={isDisabled}
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    id="manufacturer"
+                    value={formData.manufacturer || ''}
+                    onChange={(e) => updateFormData('manufacturer', e.target.value)}
+                    className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 ${
+                      errors.manufacturer ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''
+                    }`}
+                    placeholder="メーカーを入力または選択"
+                    maxLength={100}
+                    disabled={isDisabled}
+                    list="manufacturer-suggestions"
+                  />
+                  <datalist id="manufacturer-suggestions">
+                    {/* データリストは動的に更新される */}
+                  </datalist>
+                </div>
                 {errors.manufacturer && (
                   <p className="mt-1 text-sm text-red-600">{errors.manufacturer}</p>
                 )}

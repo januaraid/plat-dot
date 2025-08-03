@@ -163,13 +163,15 @@ export function Header({ onMenuToggle, isSidebarOpen }: HeaderProps) {
                       >
                         設定
                       </Link>
-                      <Link
-                        href="/test"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        onClick={() => setIsUserMenuOpen(false)}
-                      >
-                        テストページ
-                      </Link>
+                      {process.env.NODE_ENV === 'development' && (
+                        <Link
+                          href="/test"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          onClick={() => setIsUserMenuOpen(false)}
+                        >
+                          テストページ
+                        </Link>
+                      )}
                       <hr className="my-1" />
                       <button
                         onClick={handleSignOut}
