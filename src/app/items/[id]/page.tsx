@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, use } from 'react'
+import { useState, useEffect, use, useRef, useMemo, memo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
@@ -12,7 +12,7 @@ interface Props {
   params: Promise<{ id: string }>
 }
 
-export default function ItemDetailPage({ params }: Props) {
+const ItemDetailPage = memo(function ItemDetailPage({ params }: Props) {
   const router = useRouter()
   const { data: session, status } = useSession()
   const { deleteItem } = useItems()
@@ -26,18 +26,39 @@ export default function ItemDetailPage({ params }: Props) {
   const [imageError, setImageError] = useState(false)
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
 
+  // 認証状態を安定化（一度認証されたら loading への変化を無視）
+  const authStateRef = useRef({ isAuthenticated: false, hasBeenAuthenticated: false })
+  
+  const isAuthenticated = useMemo(() => {
+    const currentAuth = status === 'authenticated' && session?.hasSession
+    if (currentAuth) {
+      authStateRef.current.hasBeenAuthenticated = true
+    }
+    // 一度認証されていて、現在loadingの場合は認証済みとして扱う
+    if (authStateRef.current.hasBeenAuthenticated && status === 'loading') {
+      return true
+    }
+    authStateRef.current.isAuthenticated = currentAuth
+    return currentAuth
+  }, [status, session?.hasSession])
+
+  const isAuthLoading = useMemo(() => {
+    // 一度も認証されていない場合のみloadingとして扱う
+    return status === 'loading' && !authStateRef.current.hasBeenAuthenticated
+  }, [status])
+
   // 認証チェック
   useEffect(() => {
-    if (status !== 'loading' && (!session || !session.hasSession)) {
+    if (!isAuthLoading && !isAuthenticated) {
       router.replace('/')
     }
-  }, [session, status, router])
+  }, [isAuthenticated, isAuthLoading, router])
 
   // アイテム詳細を取得
   useEffect(() => {
     const fetchItem = async () => {
-      if (status === 'loading') return
-      if (!session || !session.hasSession) return
+      if (isAuthLoading) return
+      if (!isAuthenticated) return
 
       try {
         setLoading(true)
@@ -63,7 +84,7 @@ export default function ItemDetailPage({ params }: Props) {
     }
 
     fetchItem()
-  }, [itemId, session, status])
+  }, [itemId, isAuthenticated, isAuthLoading])
 
   const handleDelete = async () => {
     if (!item) return
@@ -95,16 +116,7 @@ export default function ItemDetailPage({ params }: Props) {
   }
 
   // 認証チェック中
-  if (status === 'loading') {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    )
-  }
-
-  // 未ログイン
-  if (!session || !session.hasSession) {
+  if (isAuthLoading || !isAuthenticated) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -359,4 +371,6 @@ export default function ItemDetailPage({ params }: Props) {
       </div>
     </div>
   )
-}
+})
+
+export default ItemDetailPage

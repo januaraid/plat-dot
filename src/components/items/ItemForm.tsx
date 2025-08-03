@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, memo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Item } from './ItemCard'
 import { useFormPersistence } from '@/hooks/useFormPersistence'
@@ -35,7 +35,7 @@ interface ItemFormProps {
   formKey?: string // フォーム永続化用のキー
 }
 
-export function ItemForm({
+export const ItemForm = memo(function ItemForm({
   item,
   mode,
   folders = [],
@@ -818,4 +818,4 @@ export function ItemForm({
 
     </div>
   )
-}
+})

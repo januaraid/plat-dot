@@ -511,6 +511,15 @@
 - **画面更新問題**: React.memo + useCallback + 認証状態安定化パターンが重要
 - **レート制限**: 15 RPM制限をメモリベースで実装、実用的
 
+#### ページ更新問題と対処法（2025-08-03追加）
+- **問題**: フォーム入力画面でタブ切り替えやフォーカス変更時に画面が自動更新され、入力内容が失われる
+- **対処法**: React.memo + useCallback + 認証状態安定化パターンの統一
+  - `React.memo(function ComponentName() {})` でコンポーネントをラップ
+  - `useRef + useMemo` で認証状態を安定化（一度認証されたらloadingへの変化を無視）
+  - `useCallback` で関数の安定化
+- **適用対象**: フォーム・入力系ページ（/items/new, /items/[id]/edit, /items/[id]/images）
+- **対象外**: 一覧表示ページ（データ鮮度のため更新を維持）
+
 ### 環境・設定情報
 - **データベース**: SQLite（`/home/ryauchi/work/repository/plat-dot/prisma/dev.db`）
 - **認証プロバイダー**: Google OAuth（環境変数設定済み）

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useMemo, memo } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { ItemForm } from '@/components/items/ItemForm'
@@ -12,7 +12,7 @@ interface EditItemPageProps {
   params: Promise<{ id: string }>
 }
 
-export default function EditItemPage({ params }: EditItemPageProps) {
+const EditItemPage = memo(function EditItemPage({ params }: EditItemPageProps) {
   const { data: session, status } = useSession()
   const router = useRouter()
   const { updateItem, loading: itemOperationLoading } = useItems()
@@ -22,6 +22,27 @@ export default function EditItemPage({ params }: EditItemPageProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [itemId, setItemId] = useState<string | null>(null)
+
+  // 認証状態を安定化（一度認証されたら loading への変化を無視）
+  const authStateRef = useRef({ isAuthenticated: false, hasBeenAuthenticated: false })
+  
+  const isAuthenticated = useMemo(() => {
+    const currentAuth = status === 'authenticated' && session?.hasSession
+    if (currentAuth) {
+      authStateRef.current.hasBeenAuthenticated = true
+    }
+    // 一度認証されていて、現在loadingの場合は認証済みとして扱う
+    if (authStateRef.current.hasBeenAuthenticated && status === 'loading') {
+      return true
+    }
+    authStateRef.current.isAuthenticated = currentAuth
+    return currentAuth
+  }, [status, session?.hasSession])
+
+  const isAuthLoading = useMemo(() => {
+    // 一度も認証されていない場合のみloadingとして扱う
+    return status === 'loading' && !authStateRef.current.hasBeenAuthenticated
+  }, [status])
 
   // paramsを解決
   useEffect(() => {
@@ -34,10 +55,10 @@ export default function EditItemPage({ params }: EditItemPageProps) {
 
   // 未ログインの場合はトップページにリダイレクト
   useEffect(() => {
-    if (status !== 'loading' && (!session || !session.hasSession)) {
+    if (!isAuthLoading && !isAuthenticated) {
       router.replace('/')
     }
-  }, [session?.hasSession, status]) // routerを依存配列から除外
+  }, [isAuthenticated, isAuthLoading, router])
 
   // アイテムデータを取得（itemIdが変更された時のみ）
   useEffect(() => {
@@ -49,11 +70,11 @@ export default function EditItemPage({ params }: EditItemPageProps) {
       }
       
       // 認証チェック
-      if (status === 'loading') {
+      if (isAuthLoading) {
         return
       }
       
-      if (!session?.hasSession) {
+      if (!isAuthenticated) {
         return
       }
 
@@ -83,14 +104,14 @@ export default function EditItemPage({ params }: EditItemPageProps) {
     }
 
     // 認証が完了し、itemIdがある場合のみ実行
-    if (itemId && status !== 'loading' && session?.hasSession) {
+    if (itemId && !isAuthLoading && isAuthenticated) {
       fetchItem()
     }
 
     return () => {
       isCancelled = true
     }
-  }, [itemId]) // itemIdのみに依存
+  }, [itemId, isAuthLoading, isAuthenticated]) // 必要な依存関係を追加
 
   const handleSave = async (itemData: any) => {
     if (!itemId) {
@@ -100,16 +121,7 @@ export default function EditItemPage({ params }: EditItemPageProps) {
   }
 
   // 認証チェック中のローディング
-  if (status === 'loading') {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    )
-  }
-
-  // 未ログインの場合はリダイレクト処理中
-  if (!session || !session.hasSession) {
+  if (isAuthLoading || !isAuthenticated) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -192,4 +204,6 @@ export default function EditItemPage({ params }: EditItemPageProps) {
       />
     </div>
   )
-}
+})
+
+export default EditItemPage
