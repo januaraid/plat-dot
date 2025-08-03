@@ -38,17 +38,20 @@ const optionalFolderNameValidation = z.string()
   .optional()
 
 // 親フォルダIDのバリデーション
-const parentIdValidation = z.string()
-  .transform(val => val?.trim())
-  .refine(val => {
-    if (val === '' || val === undefined) return true
-    // UUIDまたはcuid形式のIDを許可
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-    const cuidRegex = /^c[a-z0-9]{24,}$/i
-    return uuidRegex.test(val) || cuidRegex.test(val)
-  }, '有効な親フォルダIDを指定してください')
-  .transform(val => val === '' ? undefined : val)
-  .optional()
+const parentIdValidation = z.union([
+  z.string()
+    .transform(val => val?.trim())
+    .refine(val => {
+      if (val === '' || val === undefined) return true
+      // UUIDまたはcuid形式のIDを許可
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+      const cuidRegex = /^c[a-z0-9]{24,}$/i
+      return uuidRegex.test(val) || cuidRegex.test(val)
+    }, '有効な親フォルダIDを指定してください')
+    .transform(val => val === '' ? null : val),
+  z.null()
+])
+.optional()
 
 // 説明のバリデーション
 const descriptionValidation = z.string()

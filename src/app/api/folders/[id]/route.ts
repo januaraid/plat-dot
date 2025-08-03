@@ -294,7 +294,12 @@ export async function DELETE(
         userId: dbUser.id,
       },
       include: {
-        children: true,
+        children: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         items: true,
       },
     })
@@ -305,7 +310,13 @@ export async function DELETE(
 
     // 子フォルダが存在する場合はエラー
     if (folder.children.length > 0) {
-      return ErrorResponses.badRequest('子フォルダが存在するため削除できません。先に子フォルダを削除してください。')
+      const childNames = folder.children.map(child => child.name).slice(0, 3).join('、')
+      const moreCount = folder.children.length > 3 ? `他${folder.children.length - 3}個` : ''
+      const childrenInfo = moreCount ? `${childNames}、${moreCount}` : childNames
+      
+      return ErrorResponses.badRequest(
+        `このフォルダには${folder.children.length}個のサブフォルダ（${childrenInfo}）が存在するため削除できません。先にサブフォルダを削除してください。`
+      )
     }
 
     // トランザクションでフォルダ削除とアイテム移動を実行

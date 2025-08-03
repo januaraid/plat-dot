@@ -51,6 +51,7 @@ interface FolderTreeProps {
   onFolderEdit?: (folder: Folder) => void
   onFolderDelete?: (folder: Folder) => void
   onItemDrop?: (itemData: any, folderId: string | null) => void
+  onFolderMove?: (folderId: string, newParentId: string | null) => void
   className?: string
 }
 
@@ -65,6 +66,7 @@ export const FolderTree = forwardRef<FolderTreeHandle, FolderTreeProps>(({
   onFolderEdit,
   onFolderDelete,
   onItemDrop,
+  onFolderMove,
   className = ''
 }, ref) => {
   const { data: session, status } = useSession()
@@ -84,6 +86,7 @@ export const FolderTree = forwardRef<FolderTreeHandle, FolderTreeProps>(({
   const [error, setError] = useState<string | null>(null)
   const [hoveredFolder, setHoveredFolder] = useState<string | null>(null)
   const [dragOverFolder, setDragOverFolder] = useState<string | null>(null)
+  const [draggingFolder, setDraggingFolder] = useState<string | null>(null)
 
   // 安定した参照を維持するためのフラグ
   const isAuthenticated = status === 'authenticated' && session?.hasSession
@@ -202,6 +205,77 @@ export const FolderTree = forwardRef<FolderTreeHandle, FolderTreeProps>(({
     setDragOverFolder(null)
   }
 
+  // フォルダのドラッグ開始
+  const handleFolderDragStart = (e: React.DragEvent, folder: Folder) => {
+    console.log('[FolderTree] Folder drag start:', folder.id)
+    setDraggingFolder(folder.id)
+    
+    // フォルダデータをJSONとして設定
+    const folderData = {
+      type: 'folder',
+      id: folder.id,
+      name: folder.name,
+      parentId: folder.parentId
+    }
+    e.dataTransfer.setData('application/json', JSON.stringify(folderData))
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  // フォルダのドラッグ終了
+  const handleFolderDragEnd = () => {
+    console.log('[FolderTree] Folder drag end')
+    setDraggingFolder(null)
+    setDragOverFolder(null)
+  }
+
+  // ドロップ可能かチェック
+  const canDropFolder = (draggingFolderId: string, targetFolderId: string | null) => {
+    console.log('[FolderTree] Checking canDropFolder:', { draggingFolderId, targetFolderId })
+    
+    // 自分自身にはドロップできない
+    if (draggingFolderId === targetFolderId) {
+      console.log('[FolderTree] Cannot drop on self')
+      return false
+    }
+    
+    // ルートレベル（targetFolderId === null）への移動は常に許可
+    if (targetFolderId === null) {
+      console.log('[FolderTree] Dropping to root level - allowed')
+      return true
+    }
+    
+    // 子フォルダを親にはドロップできない（循環参照防止）
+    const isDescendant = (parentId: string | null, childId: string): boolean => {
+      if (!parentId) return false
+      if (parentId === childId) return true
+      
+      const parentFolder = folders.find(f => f.id === parentId)
+      if (!parentFolder) return false
+      
+      return isDescendant(parentFolder.parentId, childId)
+    }
+    
+    if (isDescendant(draggingFolderId, targetFolderId)) {
+      console.log('[FolderTree] Cannot drop - would create circular reference')
+      return false
+    }
+    
+    // 階層制限チェック（3階層まで）
+    let depth = 1
+    let currentFolder = folders.find(f => f.id === targetFolderId)
+    while (currentFolder && currentFolder.parentId && depth < 3) {
+      currentFolder = folders.find(f => f.id === currentFolder?.parentId)
+      depth++
+    }
+    if (depth >= 3) {
+      console.log('[FolderTree] Cannot drop - depth limit exceeded:', depth)
+      return false
+    }
+    
+    console.log('[FolderTree] Drop allowed')
+    return true
+  }
+
   const handleDrop = (e: React.DragEvent, folderId: string | null) => {
     e.preventDefault()
     setDragOverFolder(null)
@@ -209,7 +283,7 @@ export const FolderTree = forwardRef<FolderTreeHandle, FolderTreeProps>(({
     console.log('[FolderTree] Drop event triggered:', {
       folderId,
       dataTransferTypes: Array.from(e.dataTransfer.types),
-      hasOnItemDrop: !!onItemDrop
+      isRootLevel: folderId === null
     })
     
     try {
@@ -221,20 +295,50 @@ export const FolderTree = forwardRef<FolderTreeHandle, FolderTreeProps>(({
         return
       }
       
-      const itemData = JSON.parse(rawData)
-      console.log('[FolderTree] Parsed item data:', itemData)
+      const dragData = JSON.parse(rawData)
+      console.log('[FolderTree] Parsed drag data:', dragData)
       
-      if (onItemDrop && itemData) {
-        console.log('[FolderTree] Calling onItemDrop callback')
-        onItemDrop(itemData, folderId)
+      // フォルダのドロップの場合
+      if (dragData.type === 'folder' && onFolderMove) {
+        console.log('[FolderTree] Processing folder drop to:', folderId, '(isRootLevel:', folderId === null, ')')
+        
+        const canDrop = canDropFolder(dragData.id, folderId)
+        console.log('[FolderTree] Can drop result:', canDrop)
+        
+        if (!canDrop) {
+          console.warn('[FolderTree] Invalid folder drop - validation failed:', {
+            draggingId: dragData.id,
+            targetId: folderId,
+            isRootLevel: folderId === null
+          })
+          return
+        }
+        
+        console.log('[FolderTree] Calling onFolderMove with:', {
+          folderId: dragData.id,
+          newParentId: folderId
+        })
+        
+        try {
+          onFolderMove(dragData.id, folderId)
+          console.log('[FolderTree] onFolderMove call completed successfully')
+        } catch (moveError) {
+          console.error('[FolderTree] Error in onFolderMove:', moveError)
+        }
+      }
+      // アイテムのドロップの場合
+      else if (dragData.type !== 'folder' && onItemDrop) {
+        console.log('[FolderTree] Processing item drop')
+        onItemDrop(dragData, folderId)
       } else {
-        console.warn('[FolderTree] Missing onItemDrop callback or item data:', {
-          hasCallback: !!onItemDrop,
-          hasItemData: !!itemData
+        console.warn('[FolderTree] Unknown drop type or missing handler:', {
+          dragDataType: dragData.type,
+          hasOnFolderMove: !!onFolderMove,
+          hasOnItemDrop: !!onItemDrop
         })
       }
     } catch (err) {
-      console.error('[FolderTree] Error parsing dropped item data:', err)
+      console.error('[FolderTree] Error parsing dropped data:', err)
     }
   }
 
@@ -243,20 +347,31 @@ export const FolderTree = forwardRef<FolderTreeHandle, FolderTreeProps>(({
     const isExpanded = expandedFolders.has(folder.id)
     const isSelected = selectedFolderId === folder.id
     const isHovered = hoveredFolder === folder.id
+    const isDragging = draggingFolder === folder.id
     const hasChildren = folder.children && folder.children.length > 0
+    
+    // ドロップ可能かチェック
+    const isValidDropTarget = draggingFolder ? canDropFolder(draggingFolder, folder.id) : true
+    const isDropTarget = dragOverFolder === folder.id
 
     return (
       <div key={folder.id}>
         <div
+          draggable
           className={`
-            group relative rounded cursor-pointer transition-colors touch-manipulation
+            group relative rounded transition-all duration-200 touch-manipulation
             ${isSelected ? 'bg-blue-100 text-blue-900' : 'hover:bg-gray-100'}
-            ${dragOverFolder === folder.id ? 'bg-green-100 border-2 border-green-300' : ''}
+            ${isDropTarget && isValidDropTarget ? 'bg-green-100 border-2 border-green-300' : ''}
+            ${isDropTarget && !isValidDropTarget ? 'bg-red-100 border-2 border-red-300' : ''}
+            ${isDragging ? 'opacity-50 cursor-grabbing' : 'cursor-grab'}
+            ${draggingFolder && !isValidDropTarget ? 'opacity-30' : ''}
           `}
           style={{ marginLeft: `${depth * 12}px`, paddingLeft: '0.5rem', paddingRight: '0.5rem' }}
           onClick={() => onFolderSelect(folder.id)}
           onMouseEnter={() => setHoveredFolder(folder.id)}
           onMouseLeave={() => setHoveredFolder(null)}
+          onDragStart={(e) => handleFolderDragStart(e, folder)}
+          onDragEnd={handleFolderDragEnd}
           onDragOver={(e) => handleDragOver(e, folder.id)}
           onDragLeave={handleDragLeave}
           onDrop={(e) => handleDrop(e, folder.id)}
@@ -390,9 +505,9 @@ export const FolderTree = forwardRef<FolderTreeHandle, FolderTreeProps>(({
       {/* 全てのアイテム */}
       <div
         className={`
-          flex items-center px-2 py-2 rounded cursor-pointer mb-2 transition-colors touch-manipulation
+          flex items-center px-2 py-2 rounded cursor-pointer mb-2 transition-all duration-200 touch-manipulation
           ${!selectedFolderId ? 'bg-blue-100 text-blue-900' : 'hover:bg-gray-100'}
-          ${dragOverFolder === null ? 'bg-green-100 border-2 border-green-300' : ''}
+          ${dragOverFolder === null && draggingFolder ? 'bg-green-100 border-2 border-green-300' : ''}
         `}
         onClick={() => onFolderSelect(null)}
         onDragOver={(e) => handleDragOver(e, null)}

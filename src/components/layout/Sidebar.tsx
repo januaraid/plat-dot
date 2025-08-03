@@ -17,6 +17,7 @@ interface SidebarProps {
     onFolderEdit?: (folder: { id: string; name: string; parentId?: string }) => void
     onFolderDelete?: (folder: { id: string; name: string }) => void
     onItemDrop?: (itemData: any, folderId: string | null) => void
+    onFolderMove?: (folderId: string, newParentId: string | null) => void
   }
 }
 
@@ -192,6 +193,7 @@ export function Sidebar({ isOpen, onClose, isMinimized = false, onToggleMinimize
                   onFolderEdit={folderProps.onFolderEdit}
                   onFolderDelete={folderProps.onFolderDelete}
                   onItemDrop={folderProps.onItemDrop}
+                  onFolderMove={folderProps.onFolderMove}
                   className="px-2"
                 />
               </div>

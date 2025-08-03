@@ -254,7 +254,11 @@ export default function ItemsPage() {
       })
 
       if (!response.ok) {
-        throw new Error('フォルダの削除に失敗しました')
+        // APIからのエラーレスポンスを取得
+        const errorData = await response.json()
+        // エラーオブジェクトから message を取得
+        const errorMessage = errorData.error?.message || errorData.error || 'フォルダの削除に失敗しました'
+        throw new Error(errorMessage)
       }
 
       // Refresh items list to reflect changes
@@ -269,7 +273,16 @@ export default function ItemsPage() {
       }
     } catch (err) {
       console.error('Error deleting folder:', err)
-      alert(err instanceof Error ? err.message : 'エラーが発生しました')
+      // エラーメッセージをより見やすく表示
+      const errorMessage = err instanceof Error ? err.message : 'エラーが発生しました'
+      
+      // 複数行のエラーメッセージも見やすく表示
+      if (errorMessage.includes('サブフォルダ')) {
+        // サブフォルダ関連のエラーの場合、より詳細に表示
+        alert(`フォルダの削除エラー:\n\n${errorMessage}`)
+      } else {
+        alert(errorMessage)
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedFolderId])
@@ -406,6 +419,62 @@ export default function ItemsPage() {
     }
   }, [fetchItems])
 
+  // フォルダ移動ハンドラー
+  const handleFolderMove = useCallback(async (folderId: string, newParentId: string | null) => {
+    console.log('[ItemsPage] handleFolderMove called:', {
+      folderId,
+      newParentId,
+      isRootLevel: newParentId === null
+    })
+
+    try {
+      const requestBody = {
+        parentId: newParentId,
+      }
+      
+      console.log('[ItemsPage] Sending folder move request:', {
+        url: `/api/folders/${folderId}`,
+        method: 'PUT',
+        body: requestBody
+      })
+
+      const response = await fetch(`/api/folders/${folderId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      })
+
+      console.log('[ItemsPage] Folder move response:', {
+        ok: response.ok,
+        status: response.status,
+        statusText: response.statusText
+      })
+
+      if (!response.ok) {
+        // APIからのエラーレスポンスを取得
+        const errorData = await response.json()
+        console.error('[ItemsPage] Folder move API error:', errorData)
+        const errorMessage = errorData.error?.message || errorData.error || 'フォルダの移動に失敗しました'
+        throw new Error(errorMessage)
+      }
+
+      const result = await response.json()
+      console.log('[ItemsPage] Folder move successful:', result)
+
+      // フォルダツリーを更新
+      window.dispatchEvent(new Event('folder-updated'))
+      
+      console.log('[ItemsPage] フォルダを移動しました')
+    } catch (err) {
+      console.error('[ItemsPage] Error moving folder:', err)
+      // エラーメッセージをより見やすく表示
+      const errorMessage = err instanceof Error ? err.message : 'エラーが発生しました'
+      alert(`フォルダの移動エラー:\n\n${errorMessage}`)
+    }
+  }, [])
+
   // Set folder props for sidebar on mount and update when selectedFolderId changes
   useEffect(() => {
     const folderProps = {
@@ -415,6 +484,7 @@ export default function ItemsPage() {
       onFolderEdit: handleFolderEdit,
       onFolderDelete: handleFolderDelete,
       onItemDrop: handleItemDrop,
+      onFolderMove: handleFolderMove,
     }
     setFolderProps(folderProps)
 
@@ -422,7 +492,7 @@ export default function ItemsPage() {
     return () => {
       setFolderProps(null)
     }
-  }, [selectedFolderId, handleFolderSelect, handleFolderCreate, handleFolderEdit, handleFolderDelete, handleItemDrop, setFolderProps])
+  }, [selectedFolderId, handleFolderSelect, handleFolderCreate, handleFolderEdit, handleFolderDelete, handleItemDrop, handleFolderMove, setFolderProps])
 
   // Authentication check
   if (status === 'loading') {
