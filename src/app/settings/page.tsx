@@ -21,7 +21,7 @@ const SettingsPage = memo(function SettingsPage() {
   const authStateRef = useRef({ isAuthenticated: false, hasBeenAuthenticated: false })
   
   const isAuthenticated = useMemo(() => {
-    const currentAuth = status === 'authenticated' && session?.hasSession && session?.user?.email
+    const currentAuth = !!(status === 'authenticated' && session?.hasSession && session?.user?.email)
     if (currentAuth) {
       authStateRef.current.hasBeenAuthenticated = true
     }

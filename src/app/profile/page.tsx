@@ -23,7 +23,7 @@ const ProfilePage = memo(function ProfilePage() {
   const authStateRef = useRef({ isAuthenticated: false, hasBeenAuthenticated: false })
   
   const isAuthenticated = useMemo(() => {
-    const currentAuth = status === 'authenticated' && session?.hasSession && session?.user?.email
+    const currentAuth = !!(status === 'authenticated' && session?.hasSession && session?.user?.email)
     if (currentAuth) {
       authStateRef.current.hasBeenAuthenticated = true
     }
@@ -96,10 +96,10 @@ const ProfilePage = memo(function ProfilePage() {
           <div className="flex items-center space-x-6">
             {/* プロフィール画像 */}
             <div className="flex-shrink-0">
-              {session.user?.image ? (
+              {session?.user?.image ? (
                 <div className="relative w-24 h-24 rounded-full overflow-hidden">
                   <Image
-                    src={session.user.image}
+                    src={session?.user?.image || ''}
                     alt="プロフィール画像"
                     fill
                     className="object-cover"
@@ -117,10 +117,10 @@ const ProfilePage = memo(function ProfilePage() {
             {/* ユーザー情報 */}
             <div className="flex-1">
               <h1 className="text-2xl font-bold text-gray-900">
-                {stats?.displayName || session.user?.name || 'ユーザー'}
+                {stats?.displayName || session?.user?.name || 'ユーザー'}
               </h1>
               <p className="text-gray-600 mt-1">
-                {session.user?.email}
+                {session?.user?.email}
               </p>
               {stats && (
                 <p className="text-sm text-gray-500 mt-2">
