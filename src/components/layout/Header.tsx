@@ -17,10 +17,18 @@ export function Header({ onMenuToggle, isSidebarOpen }: HeaderProps) {
   
   const isLandingPage = pathname === '/'
 
-  // ページフォーカス時にセッション状態を更新
+  // ページフォーカス時にセッション状態を更新（頻度制限付き）
   useEffect(() => {
+    let lastUpdateTime = 0
+    const UPDATE_INTERVAL = 30000 // 30秒間隔で制限
+
     const handleFocus = () => {
-      update()
+      const now = Date.now()
+      // 最後の更新から30秒以上経過している場合のみ更新
+      if (now - lastUpdateTime > UPDATE_INTERVAL) {
+        lastUpdateTime = now
+        update()
+      }
     }
 
     window.addEventListener('focus', handleFocus)

@@ -174,10 +174,18 @@ export const ItemForm = memo(function ItemForm({
     loadImages()
   }, [loadImages])
 
-  // ページにフォーカスが戻った時に画像を再読み込み
+  // ページにフォーカスが戻った時に画像を再読み込み（頻度制限付き）
   useEffect(() => {
+    let lastLoadTime = 0
+    const LOAD_INTERVAL = 30000 // 30秒間隔で制限
+
     const handleWindowFocus = () => {
-      loadImages()
+      const now = Date.now()
+      // 最後の読み込みから30秒以上経過している場合のみ読み込み
+      if (now - lastLoadTime > LOAD_INTERVAL) {
+        lastLoadTime = now
+        loadImages()
+      }
     }
 
     window.addEventListener('focus', handleWindowFocus)
