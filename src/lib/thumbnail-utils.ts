@@ -57,8 +57,12 @@ export function getThumbnailUrl(
     return image.thumbnailLarge
   }
 
-  // サムネイルURLが保存されていない場合は動的に生成
-  return generateThumbnailUrl(image.url, size, itemId)
+  // サムネイルURLが保存されていない場合は元画像を使用（一時的な対応）
+  console.log('No thumbnail URL found, using original image:', image.url)
+  return image.url
+  
+  // TODO: サムネイルURLが保存されていない場合は動的に生成
+  // return generateThumbnailUrl(image.url, size, itemId)
 }
 
 /**
