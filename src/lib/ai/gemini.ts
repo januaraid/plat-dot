@@ -18,6 +18,7 @@ interface RecognitionResult {
   suggestions: string[]
   category?: string
   manufacturer?: string
+  description?: string
 }
 
 /**
@@ -31,18 +32,24 @@ export async function recognizeItemFromImage(imageBase64: string): Promise<Recog
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-lite',
       contents: [
-      `この画像に写っている商品を分析して、以下の情報をJSONで返してください：
+      `この画像に写っている商品を分析してください。必ず以下のJSON形式のみで回答してください。他の説明文は不要です。
+
+\`\`\`json
 {
   "suggestions": ["商品名候補1", "商品名候補2", "商品名候補3"],
-  "category": "カテゴリ名（例：家電、文房具、衣類、食品など）",
-  "manufacturer": "メーカー名（分かる場合のみ）"
+  "category": "カテゴリ名",
+  "manufacturer": "メーカー名",
+  "description": "商品の詳細な説明文"
 }
+\`\`\`
 
-注意事項：
-- 商品名は具体的で分かりやすい名前を提案してください
-- カテゴリは日本語で一般的なカテゴリ名を使用してください
-- メーカー名が不明な場合はnullを返してください
-- 必ずJSON形式で回答してください`,
+ルール：
+1. suggestionsは必ず配列で3つの商品名候補を提供
+2. categoryは家電、文房具、生活用品、キッチン用品、玩具、本・雑誌、衣類、スポーツ用品などの一般的な日本語カテゴリ
+3. manufacturerはメーカー名が分からない場合はnull
+4. descriptionは商品の特徴、用途、材質、サイズ感などを含む詳細な説明文（100-200文字程度）
+5. 必ずJSONコードブロック（\`\`\`json〜\`\`\`）で囲む
+6. JSON以外の説明文は絶対に含めない`,
         {
           inlineData: {
             data: imageBase64,
@@ -57,21 +64,40 @@ export async function recognizeItemFromImage(imageBase64: string): Promise<Recog
       throw new Error('AI応答が空です')
     }
 
+    
     try {
-      const parsed = JSON.parse(text)
+      // JSONコードブロック内のJSONを抽出（```json...```の場合）
+      let jsonText = text
+      const jsonMatch = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/)
+      if (jsonMatch) {
+        jsonText = jsonMatch[1]
+      }
+      
+      const parsed = JSON.parse(jsonText)
+      
       return {
-        suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions : [text.split('\n')[0] || '不明な商品'],
-        category: parsed.category || undefined,
-        manufacturer: parsed.manufacturer || undefined
+        suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions.filter(s => s && s.trim()) : [text.split('\n')[0] || '不明な商品'],
+        category: parsed.category && parsed.category !== 'null' ? parsed.category : undefined,
+        manufacturer: parsed.manufacturer && parsed.manufacturer !== 'null' ? parsed.manufacturer : undefined,
+        description: parsed.description && parsed.description !== 'null' ? parsed.description : undefined
       }
     } catch (parseError) {
       // JSON解析に失敗した場合のフォールバック
-      console.warn('JSON解析失敗、フォールバック処理:', parseError)
-      const lines = text.split('\n').filter(line => line.trim())
+      
+      // シンプルなテキスト解析でフォールバック
+      const lines = text.split('\n').filter(line => line.trim() && !line.includes('{') && !line.includes('}'))
+      const filteredLines = lines.filter(line => 
+        !line.startsWith('suggestions') && 
+        !line.startsWith('category') && 
+        !line.startsWith('manufacturer') &&
+        line.length > 2
+      )
+      
       return {
-        suggestions: lines.slice(0, 3).length > 0 ? lines.slice(0, 3) : ['不明な商品'],
+        suggestions: filteredLines.slice(0, 3).length > 0 ? filteredLines.slice(0, 3) : ['認識できませんでした'],
         category: undefined,
-        manufacturer: undefined
+        manufacturer: undefined,
+        description: undefined
       }
     }
   } catch (error) {

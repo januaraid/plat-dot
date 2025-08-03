@@ -50,7 +50,8 @@ export async function POST(req: NextRequest) {
       data: {
         suggestions: result.suggestions,
         category: result.category,
-        manufacturer: result.manufacturer
+        manufacturer: result.manufacturer,
+        description: result.description
       }
     })
 
