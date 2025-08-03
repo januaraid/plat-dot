@@ -12,6 +12,14 @@ interface UploadedImageProps {
   className?: string
   onError?: () => void
   sizes?: string
+  // サムネイルサイズを指定（thumbnailSmall, thumbnailMedium, thumbnailLargeが利用可能な場合）
+  thumbnailSize?: 'small' | 'medium' | 'large'
+  // 画像データにサムネイルURLが含まれている場合
+  thumbnailUrls?: {
+    small?: string
+    medium?: string
+    large?: string
+  }
 }
 
 export function UploadedImage({
@@ -23,15 +31,26 @@ export function UploadedImage({
   className = '',
   onError,
   sizes,
+  thumbnailSize,
+  thumbnailUrls,
 }: UploadedImageProps) {
   const [error, setError] = useState(false)
 
-  // 画像URLを適切なAPIルート形式に変換
-  const getImageUrl = (url: string) => {
-    if (url.startsWith('/uploads/')) {
-      return `/api${url}`
+  // 使用する画像URLを決定（サムネイルが利用可能な場合は優先して使用）
+  const getImageUrl = () => {
+    // サムネイルサイズが指定されていて、サムネイルURLが利用可能な場合
+    if (thumbnailSize && thumbnailUrls) {
+      const thumbnailUrl = thumbnailUrls[thumbnailSize]
+      if (thumbnailUrl) {
+        return thumbnailUrl
+      }
     }
-    return url
+    
+    // サムネイルが利用できない場合は元のURLを使用
+    if (src.startsWith('/uploads/')) {
+      return `/api${src}`
+    }
+    return src
   }
 
   const handleError = () => {
@@ -52,7 +71,7 @@ export function UploadedImage({
   }
 
   const imageProps = {
-    src: getImageUrl(src),
+    src: getImageUrl(),
     alt,
     className,
     onError: handleError,

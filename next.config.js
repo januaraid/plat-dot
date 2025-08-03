@@ -32,6 +32,11 @@ const nextConfig = {
         protocol: 'https',
         hostname: '*.vercel.app',
         pathname: '/api/uploads/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.public.blob.vercel-storage.com',
+        pathname: '/**',
       }
     ],
     // 開発環境では画像最適化を無効化（アップロード画像対応のため）
