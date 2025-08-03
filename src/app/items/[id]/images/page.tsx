@@ -591,6 +591,16 @@ const ItemImagesPage = memo(function ItemImagesPage({ params }: Props) {
             </div>
           </div>
         )}
+        
+        {/* 下部のアクションボタン */}
+        <div className="mt-8 pt-6 border-t border-gray-200 flex justify-end">
+          <button
+            onClick={handleComplete}
+            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            完了
+          </button>
+        </div>
 
       </div>
     </div>

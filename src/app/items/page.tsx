@@ -23,6 +23,7 @@ interface ItemsResponse {
     totalPages: number
   }
   categories?: string[]
+  manufacturers?: string[]
   folders?: Array<{ id: string; name: string; displayName?: string }>
 }
 
@@ -46,6 +47,7 @@ export default function ItemsPage() {
   const [total, setTotal] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
   const [categories, setCategories] = useState<string[]>([])
+  const [manufacturers, setManufacturers] = useState<string[]>([])
   const [folders, setFolders] = useState<Array<{ id: string; name: string; displayName?: string }>>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -72,6 +74,7 @@ export default function ItemsPage() {
   const [filters, setFilters] = useState<FilterOptions>({
     search: '',
     category: '',
+    manufacturer: '',
     folderId: '',
     sortBy: 'createdAt',
     sortOrder: 'desc',
@@ -159,6 +162,7 @@ export default function ItemsPage() {
         order: filters.sortOrder,
         ...(filters.search && { q: filters.search }),
         ...(filters.category && { category: filters.category }),
+        ...(filters.manufacturer && { manufacturer: filters.manufacturer }),
         ...(filters.folderId && { folderId: filters.folderId }),
       })
 
@@ -174,6 +178,7 @@ export default function ItemsPage() {
       setTotal(data.pagination?.total || 0)
       setTotalPages(data.pagination?.totalPages || 0)
       setCategories(data.categories || [])
+      setManufacturers(data.manufacturers || [])
       setFolders(data.folders || [])
     } catch (err) {
       console.error('Error fetching items:', err)
@@ -480,6 +485,7 @@ export default function ItemsPage() {
           filters={filters}
           onFiltersChange={handleFiltersChange}
           categories={categories}
+          manufacturers={manufacturers}
           folders={folders}
           loading={loading}
         />

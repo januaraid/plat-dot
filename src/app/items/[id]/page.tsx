@@ -258,6 +258,11 @@ export default function ItemDetailPage({ params }: Props) {
                     {item.category}
                   </span>
                 )}
+                {item.manufacturer && (
+                  <span className="inline-flex items-center px-2 lg:px-3 py-1 rounded-full text-xs lg:text-sm font-medium bg-green-100 text-green-800">
+                    {item.manufacturer}
+                  </span>
+                )}
                 {item.folder && (
                   <span className="inline-flex items-center px-2 lg:px-3 py-1 rounded-full text-xs lg:text-sm font-medium bg-gray-100 text-gray-800">
                     <svg className="w-3 lg:w-4 h-3 lg:h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

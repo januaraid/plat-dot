@@ -17,6 +17,7 @@ interface ItemFormData {
   name: string
   description?: string
   category?: string
+  manufacturer?: string
   purchasePrice?: number | string
   purchaseDate?: string
   purchaseLocation?: string
@@ -51,6 +52,7 @@ export function ItemForm({
     name: '',
     description: '',
     category: '',
+    manufacturer: '',
     purchasePrice: '',
     purchaseDate: '',
     purchaseLocation: '',
@@ -83,14 +85,27 @@ export function ItemForm({
     const savedData = loadFromStorage()
     
     if (savedData) {
-      // ローカルストレージにデータがある場合は復元
-      setFormData(savedData)
+      // ローカルストレージにデータがある場合は復元（デフォルト値でマージ）
+      setFormData({
+        name: '',
+        description: '',
+        category: '',
+        manufacturer: '',
+        purchasePrice: '',
+        purchaseDate: '',
+        purchaseLocation: '',
+        condition: '',
+        notes: '',
+        folderId: '',
+        ...savedData
+      })
     } else if (mode === 'edit' && item) {
       // ローカルストレージにデータがなく、編集モードの場合はアイテムデータを設定
       setFormData({
         name: item.name,
         description: item.description || '',
         category: item.category || '',
+        manufacturer: item.manufacturer || '',
         purchasePrice: item.purchasePrice || '',
         purchaseDate: item.purchaseDate ? item.purchaseDate.split('T')[0] : '', 
         purchaseLocation: item.purchaseLocation || '',
@@ -244,6 +259,11 @@ export function ItemForm({
       newErrors.category = 'カテゴリは50文字以内で入力してください'
     }
 
+    // メーカーのバリデーション
+    if (formData.manufacturer && formData.manufacturer.length > 100) {
+      newErrors.manufacturer = 'メーカーは100文字以内で入力してください'
+    }
+
     // 価格のバリデーション
     if (formData.purchasePrice) {
       const price = parseFloat(formData.purchasePrice.toString())
@@ -290,6 +310,7 @@ export function ItemForm({
         name: formData.name.trim(),
         description: formData.description?.trim() || undefined,
         category: formData.category?.trim() || undefined,
+        manufacturer: formData.manufacturer?.trim() || undefined,
         purchasePrice: formData.purchasePrice ? parseFloat(formData.purchasePrice.toString()) : undefined,
         purchaseDate: formData.purchaseDate || undefined,
         purchaseLocation: formData.purchaseLocation?.trim() || undefined,
@@ -357,6 +378,7 @@ export function ItemForm({
         name: item?.name || '',
         description: item?.description || '',
         category: item?.category || '',
+        manufacturer: item?.manufacturer || '',
         purchasePrice: item?.purchasePrice || '',
         purchaseDate: item?.purchaseDate ? item.purchaseDate.split('T')[0] : '',
         purchaseLocation: item?.purchaseLocation || '',
@@ -372,10 +394,17 @@ export function ItemForm({
       }
     }
 
-    // ローカルストレージをクリアしてから戻る
+    // ローカルストレージをクリアしてからアイテム一覧へ
     clearStorage()
     clearFocusPosition()
-    router.back()
+    
+    // 新規作成時はプレビュー画像もクリア
+    if (mode === 'create') {
+      const currentUrl = window.location.pathname + window.location.search
+      localStorage.removeItem(`item-images-preview-${currentUrl}`)
+    }
+    
+    router.push('/items')
   }
 
   const updateFormData = (field: keyof ItemFormData, value: string) => {
@@ -502,6 +531,28 @@ export function ItemForm({
                 />
                 {errors.category && (
                   <p className="mt-1 text-sm text-red-600">{errors.category}</p>
+                )}
+              </div>
+
+              {/* メーカー */}
+              <div>
+                <label htmlFor="manufacturer" className="block text-sm font-medium text-gray-700 mb-1">
+                  メーカー
+                </label>
+                <input
+                  type="text"
+                  id="manufacturer"
+                  value={formData.manufacturer || ''}
+                  onChange={(e) => updateFormData('manufacturer', e.target.value)}
+                  className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 ${
+                    errors.manufacturer ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''
+                  }`}
+                  placeholder="メーカーを入力"
+                  maxLength={100}
+                  disabled={isDisabled}
+                />
+                {errors.manufacturer && (
+                  <p className="mt-1 text-sm text-red-600">{errors.manufacturer}</p>
                 )}
               </div>
 

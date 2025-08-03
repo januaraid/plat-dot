@@ -46,6 +46,7 @@ model Item {
   name             String
   description      String?
   category         String?
+  manufacturer     String?
   purchaseDate     DateTime?
   purchasePrice    Decimal?
   purchaseLocation String?
@@ -63,6 +64,7 @@ model Item {
   @@index([userId])
   @@index([userId, name])
   @@index([userId, category])
+  @@index([userId, manufacturer])
   @@index([userId, folderId])
   @@index([userId, createdAt])
   @@index([userId, updatedAt])
@@ -84,17 +86,34 @@ model ItemImage {
 }
 
 model PriceHistory {
-  id           String   @id @default(cuid())
+  id           String              @id @default(cuid())
   itemId       String
-  searchDate   DateTime @default(now())
-  source       String
+  searchDate   DateTime            @default(now())
+  source       String              // AI検索, 手動入力など
   minPrice     Decimal?
   avgPrice     Decimal?
   maxPrice     Decimal?
-  listingCount Int      @default(0)
+  listingCount Int                 @default(0)
   searchQuery  String?
-  isActive     Boolean  @default(true)
-  item         Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  summary      String?             // AI価格調査のサマリー
+  isActive     Boolean             @default(true)
+  item         Item                @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  priceDetails PriceHistoryDetail[]
 
+  @@index([itemId, searchDate])
   @@map("price_history")
+}
+
+model PriceHistoryDetail {
+  id              String       @id @default(cuid())
+  priceHistoryId  String
+  site            String       // メルカリ, ヤフオク等
+  price           String       // 価格文字列（¥1,500など）
+  url             String?      // 商品ページURL
+  condition       String?      // 商品状態
+  title           String?      // 商品タイトル
+  createdAt       DateTime     @default(now())
+  priceHistory    PriceHistory @relation(fields: [priceHistoryId], references: [id], onDelete: Cascade)
+
+  @@map("price_history_details")
 }

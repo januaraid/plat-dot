@@ -20,6 +20,7 @@ export interface Item {
   name: string
   description?: string
   category?: string
+  manufacturer?: string
   purchasePrice?: number
   purchaseDate?: string
   purchaseLocation?: string

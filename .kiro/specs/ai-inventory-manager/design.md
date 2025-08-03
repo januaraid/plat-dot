@@ -89,7 +89,7 @@ plat-dot/
     "@next-auth/prisma-adapter": "^1.0.7",
     "tailwindcss": "^3.4.0",
     "zod": "^3.22.0",
-    "@google-cloud/aiplatform": "^3.0.0"
+    "@google/genai": "^1.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
@@ -99,8 +99,8 @@ plat-dot/
 ```
 
 ### 将来的な拡張オプション
-- **AI機能**: Vertex AI (Gemini Pro Vision) - 画像認識と商品名推定
-- **価格検索**: Vertex AI Agent Builder - Web検索統合
+- **AI機能**: Google Generative AI (Gemini 2.5 Flash-Lite) - 画像認識と商品名推定
+- **価格検索**: 外部API連携（メルカリAPI等）
 - **ファイルストレージ**: Cloud Storage
 - **デプロイ**: Vercel / Cloud Run
 - **監視**: Vercel Analytics / Cloud Monitoring
@@ -124,9 +124,14 @@ plat-dot/
 // ファイルアップロードAPI
 /api/upload                # POST: 画像アップロード
 
-// 将来的なAI API (Vertex AI)
-/api/ai/recognize          # POST: 画像認識 (Gemini Pro Vision)
-/api/ai/search-prices      # POST: 価格検索 (Agent Builder)
+// AI API (Google Generative AI)
+/api/ai/recognize                 # POST: 画像認識 (Gemini 2.5 Flash-Lite)
+/api/ai/search-prices             # POST: 価格検索 (Google検索グラウンディング)
+
+// 価格履歴API
+/api/items/[id]/price-history     # GET: 価格推移取得
+/api/dashboard/price-trends       # GET: 全体価格推移
+/api/dashboard/value-summary      # GET: 資産価値サマリー
 ```
 
 ### API実装例
@@ -430,32 +435,42 @@ export async function GET() {
   return Response.json(items)
 }
 
-// src/lib/vertexai.ts
-import { VertexAI } from '@google-cloud/aiplatform'
+// src/lib/ai/gemini.ts
+import { GoogleGenAI } from '@google/genai'
 
-const vertex_ai = new VertexAI({
-  project: process.env.GOOGLE_CLOUD_PROJECT,
-  location: process.env.VERTEX_AI_LOCATION || 'asia-northeast1'
+const ai = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY!
 })
 
-export async function recognizeImage(imageBase64: string): Promise<string[]> {
-  const model = vertex_ai.preview.getGenerativeModel({ model: 'gemini-pro-vision' })
+export async function recognizeItemFromImage(imageBase64: string): Promise<{
+  suggestions: string[]
+  category?: string
+  manufacturer?: string
+}> {
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-flash-lite',
+    prompt: `この画像に写っている商品を分析して、以下の情報をJSONで返してください：
+{
+  "suggestions": ["商品名候補1", "商品名候補2", "商品名候補3"],
+  "category": "カテゴリ名",
+  "manufacturer": "メーカー名"
+}`,
+    image: {
+      imageBytes: imageBase64,
+      mimeType: 'image/jpeg'
+    }
+  })
   
-  const request = {
-    contents: [{
-      role: 'user',
-      parts: [
-        { text: 'この画像の商品名を3つまで提案してください' },
-        { inline_data: { mime_type: 'image/jpeg', data: imageBase64 } }
-      ]
-    }]
+  const text = response.text
+  try {
+    return JSON.parse(text)
+  } catch {
+    return {
+      suggestions: [text.split('\n')[0] || '不明な商品'],
+      category: undefined,
+      manufacturer: undefined
+    }
   }
-  
-  const response = await model.generateContent(request)
-  const text = response.response.candidates[0].content.parts[0].text
-  
-  // AIの回答から商品名候補を抽出
-  return text.split('\n').filter(line => line.trim()).slice(0, 3)
 }
 ```
 
@@ -465,7 +480,7 @@ export async function recognizeImage(imageBase64: string): Promise<string[]> {
 ✅ アイテム編集ができる  
 ✅ アイテム削除ができる  
 ✅ 認証チェックが動作する  
-✅ Vertex AI接続が成功する  
+✅ Google Generative AI接続が成功する  
 ✅ 画像認識APIが動作する
 
 ### Week 3: フォルダ管理
@@ -711,13 +726,13 @@ describe('/api/items', () => {
 
 ### Phase 2: AI機能追加（3-4ヶ月後）
 
-- **画像認識**: Vertex AI (Gemini Pro Vision)連携
-- **価格検索**: メルカリ等のAPI連携
-- **AI結果キャッシュ**: Redis導入
+- **画像認識**: Google Generative AI (Gemini 2.5 Flash-Lite)連携
+- **価格検索**: Google検索グラウンディング機能を活用したAI価格調査
+- **AI結果キャッシュ**: Redis導入（オプション）
 
 ```typescript
 // src/app/api/ai/recognize/route.ts
-import { recognizeImage } from '@/lib/vertexai'
+import { recognizeItemFromImage } from '@/lib/ai/gemini'
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -728,13 +743,14 @@ export async function POST(req: NextRequest) {
   const { imageBase64 } = await req.json()
   
   try {
-    // Vertex AI Gemini Pro Vision呼び出し
-    const suggestions = await recognizeImage(imageBase64)
+    // Google Generative AI (Gemini 2.5 Flash-Lite) 呼び出し
+    const result = await recognizeItemFromImage(imageBase64)
     
     return Response.json({
       success: true,
-      suggestions,
-      confidence: 0.85 // Vertex AIから信頼度も取得可能
+      suggestions: result.suggestions,
+      category: result.category,
+      manufacturer: result.manufacturer
     })
   } catch (error) {
     console.error('AI recognition failed:', error)
@@ -746,6 +762,135 @@ export async function POST(req: NextRequest) {
 }
 ```
 
+新しいAI価格検索機能の実装例：
+
+```typescript
+// src/app/api/ai/search-prices/route.ts
+import { searchItemPrices, savePriceHistory } from '@/lib/ai/gemini'
+
+export async function POST(req: NextRequest) {
+  const session = await auth()
+  if (!session?.user) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const { itemId, itemName, manufacturer, saveHistory = true } = await req.json()
+  
+  try {
+    // Google検索グラウンディングを使用した価格検索
+    const result = await searchItemPrices(itemName, manufacturer)
+    
+    // 価格履歴を保存（オプション）
+    let priceHistory = null
+    if (saveHistory && itemId) {
+      priceHistory = await savePriceHistory(itemId, result, session.user.id)
+    }
+    
+    return Response.json({
+      success: true,
+      prices: result.prices,
+      summary: result.summary,
+      historyId: priceHistory?.id
+    })
+  } catch (error) {
+    console.error('Price search failed:', error)
+    return Response.json({
+      success: false,
+      error: '価格検索に失敗しました'
+    }, { status: 500 })
+  }
+}
+```
+
+価格履歴取得API:
+
+```typescript
+// src/app/api/items/[id]/price-history/route.ts
+import { getPriceHistory } from '@/lib/ai/gemini'
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const session = await auth()
+  if (!session?.user) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const { searchParams } = new URL(req.url)
+  const limit = parseInt(searchParams.get('limit') || '10')
+
+  try {
+    const history = await getPriceHistory(params.id, session.user.id, limit)
+    
+    return Response.json({
+      success: true,
+      history: history.map(h => ({
+        id: h.id,
+        searchDate: h.searchDate,
+        minPrice: h.minPrice,
+        avgPrice: h.avgPrice,
+        maxPrice: h.maxPrice,
+        listingCount: h.listingCount,
+        summary: h.summary,
+        details: h.priceDetails.map(d => ({
+          site: d.site,
+          price: d.price,
+          url: d.url,
+          condition: d.condition,
+          title: d.title
+        }))
+      }))
+    })
+  } catch (error) {
+    console.error('Price history fetch failed:', error)
+    return Response.json({
+      success: false,
+      error: '価格履歴の取得に失敗しました'
+    }, { status: 500 })
+  }
+}
+```
+
+### 価格推移機能の設計
+
+#### データベース構造
+- **PriceHistory**: 価格調査の概要（最小・平均・最大価格）
+- **PriceHistoryDetail**: 各サイトの詳細価格情報
+
+#### 統合実装フロー（タスク20）
+```mermaid
+sequenceDiagram
+    participant Dev as 開発者
+    participant DB as データベース
+    participant API as API層
+    participant AI as Gemini AI
+    participant UI as フロントエンド
+    
+    Note over Dev, UI: 1. データベース設計・拡張
+    Dev->>DB: PriceHistoryDetailモデル追加
+    Dev->>DB: PriceHistoryモデル拡張
+    Dev->>DB: マイグレーション実行
+    
+    Note over Dev, UI: 2. AI機能実装
+    Dev->>API: savePriceHistory関数実装
+    Dev->>API: getPriceHistory関数実装
+    Dev->>API: /api/ai/search-prices実装
+    Dev->>API: /api/items/[id]/price-history実装
+    
+    Note over Dev, UI: 3. 価格調査フロー
+    UI->>API: 価格調査リクエスト
+    API->>AI: Google検索グラウンディング
+    AI-->>API: 詳細価格情報
+    API->>DB: 履歴自動保存
+    API-->>UI: 結果＋履歴表示
+```
+
+#### 価格推移表示機能
+- **個別アイテム**: 時系列での価格変動グラフ
+- **全体ダッシュボード**: 資産価値推移サマリー
+- **比較機能**: 複数アイテムの価格推移比較
+
 ### Phase 3: スケーリング対応（6-12ヶ月後）
 
 - **マイクロサービス化**: 必要に応じて分離
@@ -754,8 +899,8 @@ export async function POST(req: NextRequest) {
 
 **コスト見積もり**:
 - **MVP段階**: Vercel Hobby ($0) + DB ($5-10/月)
-- **AI機能段階**: $20-50/月
-- **本格運用**: $100-500/月
+- **AI機能段階**: $15-30/月（Gemini 2.5 Flash-Lite使用により大幅削減）
+- **本格運用**: $50-200/月
 
 ## メリットまとめ
 
@@ -791,13 +936,13 @@ export async function POST(req: NextRequest) {
 - **コスト見積もり**: Vertex AI入力1000画像で約$3-5（OpenAIの約1/10）
 - **テスト内容**: Vertex AIモック + 実環境コストテスト
 
-#### 2.2 Price Search Service (Cloud Functions)
-- Cloud FunctionsでPuppeteerスクレイピング実行
-- コールドスタートでコスト最適化（使用時のみ課金）
-- Cloud Schedulerで定期実行スケジューリング
-- **メモリ**: 1GB（Chromeヘッドレスブラウザ用）
-- **タイムアウト**: 540秒（最大実行時間）
-- **テスト内容**: Functions Frameworkでローカルテスト + 本番環境テスト
+#### 2.2 AI Price Search Service (Google検索グラウンディング)
+- Google検索グラウンディング機能を活用したシンプルな価格調査
+- 複雑なスクレイピングやAPI連携不要
+- リアルタイムの価格情報取得
+- **メリット**: メンテナンス不要、安定性、コスト効率
+- **対応サイト**: Google検索でカバーされる全サイト（メルカリ、ヤフオク、ラクマなど）
+- **テスト内容**: AI応答の形式検証、価格情報精度テスト
 
 #### 2.3 Cloud Pub/Sub 連携
 - Cloud Pub/Subで非同期メッセージング
@@ -807,11 +952,11 @@ export async function POST(req: NextRequest) {
 - **テスト内容**: Pub/Sub Emulatorでメッセージフローテスト
 
 **Phase 2 終了条件**:
-- AI機能がGCPネイティブサービスと統合して動作
-- Vertex AI単一構成でコスト最適化とシンプル化を実現
-- Cloud Functionsでスクレイピングコストを実行時のみに最適化
+- AI機能がGoogle検索グラウンディングと統合して動作
+- Gemini 2.5 Flash-Lite単一構成でコスト最適化とシンプル化を実現
+- Google検索グラウンディングで複雑な外部API連携を排除
 - AI障害時でもコア機能は継続利用可能
-- 月額AIコスト$50以下で運用可能（Vertex AI化により大幅削減）
+- 月額AIコスト$30以下で運用可能（Google検索グラウンディング活用により大幅削減）
 
 ### Phase 3: Business Services (GCPエンタープライズ機能)
 **目標**: スケール可能な商用サービスとエンタープライズ機能
@@ -822,8 +967,8 @@ export async function POST(req: NextRequest) {
 - **独立テスト**: Stripeモックで課金ロジックテスト
 
 #### 3.2 Price Tracking Service
-- 定期価格追跡
-- Price Search Serviceと連携
+- 定期価格追跡（Google検索グラウンディング使用）
+- AI価格調査サービスと連携
 - **独立テスト**: スケジューラーロジックテスト
 
 #### 3.3 Notification Service
@@ -898,15 +1043,16 @@ describe('E2E: Item Creation with AI', () => {
 7. **監視・ログ統合**: Cloud Monitoring/Loggingでオプショナビリティ向上
 
 ### コスト見積もり（月額）
-- **Phase 1**: $30-50（小規模用途）
-- **Phase 2**: $50-80（AI機能追加、Vertex AI統一でコスト最適化）  
-- **Phase 3**: $150-350（商用サービス）
+- **Phase 1**: $10-30（小規模用途）
+- **Phase 2**: $15-30（AI機能追加、Gemini 2.5 Flash-Lite使用でコスト大幅削減）  
+- **Phase 3**: $50-200（商用サービス）
 - **スケーリング時**: 使用量に比例して線形増加
 
-### Vertex AI統一構成のメリット
-- **コスト削減**: 従来のマルチベンダー構成の約1/5のコスト
-- **GCP統合**: ネイティブサービス連携で運用簡素化
-- **統一管理**: 単一のサービスアカウントで全AI機能を管理
-- **レイテンシ向上**: asia-northeast1リージョンで日本国内通信
-- **セキュリティ**: VPC内完結、IAMによる細かなアクセス制御
-- **機能統合**: 画像認識からWeb検索まで一貫したAI体験
+### Google Generative AI SDK + 検索グラウンディングのメリット
+- **コスト削減**: Gemini 2.5 Flash-Lite の低価格（$0.10/$0.40 per 1M tokens）で大幅コストカット
+- **シンプル構成**: APIキーのみで利用開始、外部API連携・スクレイピング不要
+- **統一管理**: 単一のAI SDKで画像認識と価格検索を統合管理
+- **メンテナンス不要**: Google検索グラウンディングで複雑なスクレイピング保守が不要
+- **高精度**: Google検索の最新情報を活用したリアルタイム価格取得
+- **安定性**: サイト仕様変更の影響を受けない堅牢なソリューション
+- **機能統合**: 画像認識から価格調査まで一貫したAI体験

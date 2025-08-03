@@ -61,11 +61,20 @@ export async function GET(request: NextRequest) {
             contains: searchTerm 
           } 
         },
+        { 
+          manufacturer: { 
+            contains: searchTerm 
+          } 
+        },
       ]
     }
 
     if (params.category) {
       where.category = params.category
+    }
+
+    if (params.manufacturer) {
+      where.manufacturer = params.manufacturer
     }
 
     if (params.folderId) {
@@ -76,7 +85,7 @@ export async function GET(request: NextRequest) {
     const skip = (params.page - 1) * params.limit
 
     // データ取得
-    const [items, total, categories, folders] = await Promise.all([
+    const [items, total, categories, folders, manufacturers] = await Promise.all([
       prisma.item.findMany({
         where,
         skip,
@@ -154,6 +163,17 @@ export async function GET(request: NextRequest) {
         
         return sortFoldersHierarchically(folders)
       }),
+      // メーカー一覧を取得（ユニークな値のみ）
+      prisma.item.findMany({
+        where: { userId: dbUser.id },
+        select: { manufacturer: true },
+        distinct: ['manufacturer'],
+      }).then(results => 
+        results
+          .map(item => item.manufacturer)
+          .filter(manufacturer => manufacturer && manufacturer.trim() !== '')
+          .sort()
+      ),
     ])
 
     // レスポンスの構築
@@ -166,6 +186,7 @@ export async function GET(request: NextRequest) {
         totalPages: Math.ceil(total / params.limit),
       },
       categories,
+      manufacturers,
       folders,
     }
 

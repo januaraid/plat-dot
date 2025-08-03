@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react'
 export interface FilterOptions {
   search: string
   category: string
+  manufacturer: string
   folderId: string
   sortBy: 'name' | 'createdAt' | 'updatedAt' | 'price'
   sortOrder: 'asc' | 'desc'
@@ -16,6 +17,7 @@ interface ItemFiltersProps {
   filters: FilterOptions
   onFiltersChange: (filters: FilterOptions) => void
   categories?: string[]
+  manufacturers?: string[]
   folders?: Array<{ id: string; name: string; displayName?: string }>
   loading?: boolean
 }
@@ -24,6 +26,7 @@ export function ItemFilters({
   filters,
   onFiltersChange,
   categories = [],
+  manufacturers = [],
   folders = [],
   loading = false
 }: ItemFiltersProps) {
@@ -59,6 +62,7 @@ export function ItemFilters({
     const defaultFilters: FilterOptions = {
       search: '',
       category: '',
+      manufacturer: '',
       folderId: '',
       sortBy: 'createdAt',
       sortOrder: 'desc',
@@ -69,7 +73,7 @@ export function ItemFilters({
     onFiltersChange(defaultFilters)
   }
 
-  const hasActiveFilters = filters.search || filters.category || filters.folderId
+  const hasActiveFilters = filters.search || filters.category || filters.manufacturer || filters.folderId
 
   return (
     <div className="space-y-4">
@@ -171,7 +175,29 @@ export function ItemFilters({
               </select>
             </div>
 
-            {/* Folder filter */}
+            {/* Manufacturer filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                メーカー
+              </label>
+              <select
+                value={filters.manufacturer}
+                onChange={(e) => handleFilterChange('manufacturer', e.target.value)}
+                className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                disabled={loading}
+              >
+                <option value="">すべてのメーカー</option>
+                {manufacturers.map((manufacturer) => (
+                  <option key={manufacturer} value={manufacturer}>
+                    {manufacturer}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Folder filter - 単独行に */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 フォルダ

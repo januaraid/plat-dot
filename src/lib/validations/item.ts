@@ -92,6 +92,8 @@ const baseItemSchema = z.object({
   
   category: trimmedOptionalString(50, 'カテゴリー'),
   
+  manufacturer: trimmedOptionalString(100, 'メーカー'),
+  
   purchaseDate: dateValidation,
   
   purchasePrice: priceValidation,
@@ -180,6 +182,11 @@ export const searchItemsSchema = z.object({
   category: z.string()
     .transform(val => val?.trim())
     .refine(val => !val || val.length <= 50, 'カテゴリーは50文字以内で入力してください')
+    .optional(),
+  
+  manufacturer: z.string()
+    .transform(val => val?.trim())
+    .refine(val => !val || val.length <= 100, 'メーカーは100文字以内で入力してください')
     .optional(),
   
   folderId: z.string()
