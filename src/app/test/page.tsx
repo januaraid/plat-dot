@@ -106,6 +106,22 @@ export default function TestIndexPage() {
             → テストページを開く
           </div>
         </Link>
+        
+        <Link 
+          href="/test/ai" 
+          className="block bg-white shadow rounded-lg p-6 hover:shadow-lg transition-shadow border-2 border-purple-200"
+        >
+          <h2 className="text-xl font-semibold mb-2 text-purple-700">🤖 AI機能API</h2>
+          <p className="text-gray-600">
+            Gemini 2.5 Flash-Liteを使った画像認識と価格検索機能をテストできます。
+          </p>
+          <div className="mt-2 text-xs bg-purple-50 text-purple-600 px-2 py-1 rounded">
+            NEW: タスク18実装完了
+          </div>
+          <div className="mt-4 text-sm text-purple-500">
+            → テストページを開く
+          </div>
+        </Link>
       </div>
       
       <div className="mt-12 bg-white shadow rounded-lg p-6">
@@ -167,6 +183,16 @@ export default function TestIndexPage() {
                 <li>• <code>GET /api/items/[id]/images</code> - アイテムの画像一覧取得</li>
                 <li>• <code>DELETE /api/images/[id]</code> - 画像削除（ファイルとDB両方）</li>
                 <li>• <code>PUT /api/images/order</code> - 画像順序更新（ドラッグ&ドロップ対応準備）</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-medium text-gray-800 text-purple-700">🤖 AI機能API:</h4>
+              <ul className="text-gray-600 space-y-1 ml-4">
+                <li>• <code>POST /api/ai/recognize</code> - 画像認識（商品名・カテゴリ・メーカー）</li>
+                <li>• <code>GET /api/ai/usage</code> - AI使用量・制限チェック</li>
+                <li>• <code>GET /api/ai/test</code> - Gemini API接続テスト</li>
+                <li className="text-purple-600">• レート制限: 15 RPM</li>
+                <li className="text-purple-600">• モデル: Gemini 2.5 Flash-Lite</li>
               </ul>
             </div>
           </div>

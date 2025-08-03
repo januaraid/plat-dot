@@ -2,11 +2,14 @@ import { GoogleGenAI } from '@google/genai'
 import { prisma } from '@/lib/db'
 
 /**
- * Google Generative AI クライアントの初期化
+ * Google Generative AI クライアントを取得する
  */
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY!
-})
+function getAIClient() {
+  return new GoogleGenAI({ 
+    apiKey: process.env.GEMINI_API_KEY!,
+    fetch: fetch
+  })
+}
 
 /**
  * 画像認識結果のインターフェース
@@ -24,9 +27,11 @@ interface RecognitionResult {
  */
 export async function recognizeItemFromImage(imageBase64: string): Promise<RecognitionResult> {
   try {
+    const ai = getAIClient()
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-lite',
-      prompt: `この画像に写っている商品を分析して、以下の情報をJSONで返してください：
+      contents: [
+      `この画像に写っている商品を分析して、以下の情報をJSONで返してください：
 {
   "suggestions": ["商品名候補1", "商品名候補2", "商品名候補3"],
   "category": "カテゴリ名（例：家電、文房具、衣類、食品など）",
@@ -38,13 +43,16 @@ export async function recognizeItemFromImage(imageBase64: string): Promise<Recog
 - カテゴリは日本語で一般的なカテゴリ名を使用してください
 - メーカー名が不明な場合はnullを返してください
 - 必ずJSON形式で回答してください`,
-      image: {
-        imageBytes: imageBase64,
-        mimeType: 'image/jpeg'
-      }
+        {
+          inlineData: {
+            data: imageBase64,
+            mimeType: 'image/jpeg'
+          }
+        }
+      ]
     })
     
-    const text = response.text?.trim()
+    const text = response.text.trim()
     if (!text) {
       throw new Error('AI応答が空です')
     }
@@ -76,6 +84,26 @@ export async function recognizeItemFromImage(imageBase64: string): Promise<Recog
  * レート制限チェック（15 RPM制限）
  */
 const rateLimitCache = new Map<string, number[]>()
+
+/**
+ * レート制限キャッシュをクリア
+ */
+export function clearRateLimit(userId: string): void {
+  rateLimitCache.delete(userId)
+}
+
+/**
+ * ユーザーの現在のリクエスト数を取得
+ */
+export function getCurrentRequests(userId: string): number {
+  const now = Date.now()
+  const windowStart = now - 60 * 1000 // 1分前
+  
+  const userRequests = rateLimitCache.get(userId) || []
+  const recentRequests = userRequests.filter(timestamp => timestamp > windowStart)
+  
+  return recentRequests.length
+}
 
 export function checkRateLimit(userId: string): boolean {
   const now = Date.now()
@@ -114,9 +142,11 @@ export async function searchItemPrices(itemName: string, manufacturer?: string):
       ? `${manufacturer} ${itemName} 価格 中古 フリマ メルカリ ヤフオク`
       : `${itemName} 価格 中古 フリマ メルカリ ヤフオク`
 
+    const ai = getAIClient()
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-lite',
-      prompt: `以下の商品の価格情報を検索して、日本のフリマサイトやオークションサイトでの相場を調べてください：
+      contents: [
+        `以下の商品の価格情報を検索して、日本のフリマサイトやオークションサイトでの相場を調べてください：
 
 商品名: ${itemName}
 ${manufacturer ? `メーカー: ${manufacturer}` : ''}
@@ -138,13 +168,21 @@ ${manufacturer ? `メーカー: ${manufacturer}` : ''}
 - 実際の検索結果から最新の価格情報を取得してください
 - 複数のサイト（メルカリ、ヤフオク、ラクマなど）の情報を含めてください
 - 価格は日本円で表示してください
-- 必ずJSON形式で回答してください`,
-      tools: [{
-        googleSearchRetrieval: {}
-      }]
+- 必ずJSON形式で回答してください`
+      ],
+      config: {
+        tools: [{
+          googleSearchRetrieval: {
+            dynamicRetrievalConfig: {
+              mode: 'MODE_DYNAMIC',
+              dynamicThreshold: 0.7
+            }
+          }
+        }]
+      }
     })
     
-    const text = response.text?.trim()
+    const text = response.text.trim()
     if (!text) {
       throw new Error('AI応答が空です')
     }

@@ -8,17 +8,18 @@ datasource db {
 }
 
 model User {
-  id               String    @id @default(cuid())
-  email            String    @unique
+  id               String       @id @default(cuid())
+  email            String       @unique
   name             String?
   image            String?
-  subscriptionTier String    @default("free")
-  aiUsageCount     Int       @default(0)
-  aiUsageLimit     Int       @default(20)
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  subscriptionTier String       @default("free")
+  aiUsageCount     Int          @default(0)
+  aiUsageLimit     Int          @default(20)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
   folders          Folder[]
   items            Item[]
+  aiUsageLogs      AiUsageLog[]
 
   @@map("users")
 }
@@ -60,6 +61,7 @@ model Item {
   folder           Folder?        @relation(fields: [folderId], references: [id])
   user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   priceHistory     PriceHistory[]
+  aiUsageLogs      AiUsageLog[]
 
   @@index([userId])
   @@index([userId, name])
@@ -116,4 +118,17 @@ model PriceHistoryDetail {
   priceHistory    PriceHistory @relation(fields: [priceHistoryId], references: [id], onDelete: Cascade)
 
   @@map("price_history_details")
+}
+
+model AiUsageLog {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // 'image_recognition', 'price_search'
+  itemId    String?  // 関連アイテム（あれば）
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item      Item?    @relation(fields: [itemId], references: [id], onDelete: SetNull)
+
+  @@index([userId, type, createdAt])
+  @@map("ai_usage_logs")
 }

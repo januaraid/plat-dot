@@ -3,10 +3,10 @@
 ## 進捗状況
 - 作成日: 2025-07-21
 - 最終更新: 2025-08-03
-- ステータス: フェーズ6タスク17完了、AI機能基盤準備大部分完了
+- ステータス: フェーズ7タスク18完了（AI機能基盤準備）
 - 総タスク数: 31（タスク20.5を20に統合）
-- 完了: 17
-- 残り: 14（タスク18, 20の一部実装済み）
+- 完了: 18
+- 残り: 13
 
 ---
 
@@ -198,18 +198,22 @@
   - ✅ エラーハンドリング・フォーカス管理
   - _要件: 1.1, 1.4, 1.6_
 
-## フェーズ7: AI機能基盤（将来対応）
+## フェーズ7: AI機能基盤
 
-- [ ] 18. AI機能API基盤準備
+- [x] 18. AI機能API基盤準備
   - ✅ Google Generative AI SDK（@google/genai）のインストール（package.jsonに追加済み）
   - ✅ Gemini 2.5 Flash-Lite モデルの使用設定（gemini.ts実装済み）
   - ✅ GEMINI_API_KEY 環境変数設定（.env.localに設定済み）
-  - POST /api/ai/recognize エンドポイント実装
-  - レート制限（15 RPM）の実装（checkRateLimit関数実装済み）
-  - エラーハンドリング（API制限、ネットワークエラー）
-  - 動作確認テスト（API キー接続確認）
+  - ✅ POST /api/ai/recognize エンドポイント実装完了
+  - ✅ レート制限（15 RPM）の実装（checkRateLimit関数実装済み）
+  - ✅ エラーハンドリング（API制限、ネットワークエラー）実装済み
+  - ✅ 動作確認テスト（API キー接続確認）実装済み
+  - ✅ **AiUsageLogテーブル**による使用履歴管理システム実装
+  - ✅ GET /api/ai/usage エンドポイント（機能別使用統計）実装
+  - ✅ GET /api/ai/test エンドポイント（接続テスト）実装
+  - ✅ AIテストページ（/test/ai）での動作確認完了
+  - ✅ 画像アップロード・認識機能の動作確認完了
   - _要件: 4.1, 7.1_
-  - **次の実装ステップ**: POST /api/ai/recognizeエンドポイント作成
 
 - [ ] 19. AI商品名認識UI実装
   - 画像アップロード時のAI認識トリガー（Gemini 2.5 Flash-Lite使用）
@@ -495,6 +499,18 @@
    - 既存のZodバリデーションを拡張
    - フロントエンド側のエラー表示改善
 
+### フェーズ7: AI機能基盤で学んだこと
+
+#### AI機能API基盤準備（タスク18）での学び
+- **Google GenAI SDK移行**: Vertex AIからGoogle GenAI SDKに変更、設定が大幅簡素化
+- **モデル選択**: Gemini 2.5 Flash-Liteが最もコストパフォーマンスが良い
+- **SDK構文変更**: `ai.getGenerativeModel()` → `ai.models.generateContent()` に変更
+- **初期化方法**: 明示的APIキー渡し `new GoogleGenAI({ apiKey })` が安定
+- **使用履歴管理**: AiUsageLogテーブルによる機能別使用回数管理が効果的
+- **エラーハンドリング**: SDK更新時の構文変更に注意、開発サーバー再起動が必要
+- **画面更新問題**: React.memo + useCallback + 認証状態安定化パターンが重要
+- **レート制限**: 15 RPM制限をメモリベースで実装、実用的
+
 ### 環境・設定情報
 - **データベース**: SQLite（`/home/ryauchi/work/repository/plat-dot/prisma/dev.db`）
 - **認証プロバイダー**: Google OAuth（環境変数設定済み）
@@ -529,4 +545,76 @@
 - Prisma ORM + SQLite（開発）/ PostgreSQL（本番）
 - NextAuth.js + Google OAuth
 - Tailwind CSS + shadcn/ui（将来）
+
+---
+
+## 画面更新・再描画ガイドライン
+
+### 基本方針
+ページの性質に応じて、フォーカス時の画面更新動作を使い分ける。
+
+### 再描画を防ぐべきページ（React.memo + useCallback + 認証状態安定化）
+**対象**: ユーザーの作業状態を保持すべきページ
+
+#### 実装パターン
+```typescript
+const PageComponent = memo(function PageComponent() {
+  // 認証状態安定化
+  const authStateRef = useRef({ isAuthenticated: false, hasBeenAuthenticated: false })
+  
+  const isAuthenticated = useMemo(() => {
+    const currentAuth = status === 'authenticated' && session?.hasSession
+    if (currentAuth) {
+      authStateRef.current.hasBeenAuthenticated = true
+    }
+    // 一度認証されていて、現在loadingの場合は認証済みとして扱う
+    if (authStateRef.current.hasBeenAuthenticated && status === 'loading') {
+      return true
+    }
+    return currentAuth
+  }, [status, session?.hasSession])
+
+  // すべてのハンドラーをuseCallbackでメモ化
+  const handleSomething = useCallback(() => {
+    // 処理
+  }, [dependencies])
+})
+```
+
+#### 適用済みページ
+- `/items/[id]/images` - 画像アップロード・管理画面
+- `/test/ai` - AIテスト画面
+
+#### 今後適用検討ページ
+- `/items/new` - アイテム新規作成フォーム
+- `/items/[id]/edit` - アイテム編集フォーム
+- 長時間の入力作業を伴うページ
+
+### 再描画を維持すべきページ（現在の仕様を継続）
+**対象**: 最新データの表示が重要なページ
+
+#### 維持理由
+- データ鮮度の重要性（在庫管理の性質上）
+- 他ユーザーとの同期
+- リアルタイム性の確保
+
+#### 対象ページ
+- `/items` - アイテム一覧画面
+- `/` - ダッシュボード画面  
+- `/items/[id]` - アイテム詳細画面
+- 各種一覧・詳細表示ページ
+
+### 実装時の注意点
+1. **ユーザーフィードバック優先**: 問題報告があった画面から対応
+2. **部分的最適化**: 全画面一括対応は避け、必要な画面のみ個別対応
+3. **パフォーマンス配慮**: memo化により不要な再レンダリングを防止
+4. **テスト確認**: 
+   - 他タブに移動→戻る際の動作確認
+   - ファイル選択などのインタラクション確認
+   - 認証状態の適切な処理確認
+
+### 参考実装
+詳細な実装例は以下ファイルを参照：
+- `/src/app/items/[id]/images/page.tsx` - 完全実装例
+- `/src/app/test/ai/page.tsx` - 適用例
 - Zod バリデーション
