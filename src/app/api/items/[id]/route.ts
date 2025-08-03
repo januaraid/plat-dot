@@ -60,6 +60,9 @@ export async function GET(
             id: true,
             url: true,
             order: true,
+            thumbnailSmall: true,
+            thumbnailMedium: true,
+            thumbnailLarge: true,
           },
           orderBy: {
             order: 'asc',
@@ -184,6 +187,9 @@ export async function PUT(
             id: true,
             url: true,
             order: true,
+            thumbnailSmall: true,
+            thumbnailMedium: true,
+            thumbnailLarge: true,
           },
           orderBy: {
             order: 'asc',

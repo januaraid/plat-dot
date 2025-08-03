@@ -64,7 +64,12 @@ export async function GET(request: NextRequest) {
             select: { name: true }
           },
           images: {
-            select: { filename: true },
+            select: { 
+              url: true,
+              thumbnailSmall: true,
+              thumbnailMedium: true,
+              thumbnailLarge: true
+            },
             take: 1,
             orderBy: { order: 'asc' }
           }
@@ -74,8 +79,7 @@ export async function GET(request: NextRequest) {
       // 最近更新したアイテム（5件）
       prisma.item.findMany({
         where: { 
-          userId: dbUser.id,
-          updatedAt: { not: { equals: prisma.item.fields.createdAt } }
+          userId: dbUser.id
         },
         orderBy: { updatedAt: 'desc' },
         take: 5,
@@ -84,7 +88,12 @@ export async function GET(request: NextRequest) {
             select: { name: true }
           },
           images: {
-            select: { filename: true },
+            select: { 
+              url: true,
+              thumbnailSmall: true,
+              thumbnailMedium: true,
+              thumbnailLarge: true
+            },
             take: 1,
             orderBy: { order: 'asc' }
           }
@@ -94,16 +103,16 @@ export async function GET(request: NextRequest) {
       // フォルダ階層別統計
       prisma.$queryRaw<{depth: number, count: bigint}[]>`
         WITH RECURSIVE folder_depth AS (
-          SELECT id, name, parentId, 1 as depth, userId
+          SELECT id, name, "parentId", 1 as depth, "userId"
           FROM folders
-          WHERE parentId IS NULL AND userId = ${dbUser.id}
+          WHERE "parentId" IS NULL AND "userId" = ${dbUser.id}
           
           UNION ALL
           
-          SELECT f.id, f.name, f.parentId, fd.depth + 1, f.userId
+          SELECT f.id, f.name, f."parentId", fd.depth + 1, f."userId"
           FROM folders f
-          INNER JOIN folder_depth fd ON f.parentId = fd.id
-          WHERE f.userId = ${dbUser.id}
+          INNER JOIN folder_depth fd ON f."parentId" = fd.id
+          WHERE f."userId" = ${dbUser.id}
         )
         SELECT depth, COUNT(*) as count
         FROM folder_depth
@@ -150,7 +159,9 @@ export async function GET(request: NextRequest) {
         category: item.category,
         folderName: item.folder?.name,
         createdAt: item.createdAt,
-        image: item.images[0]?.filename
+        image: item.images[0]?.url,
+        thumbnailSmall: item.images[0]?.thumbnailSmall,
+        thumbnailMedium: item.images[0]?.thumbnailMedium
       })),
       recentUpdatedItems: recentUpdatedItems.map(item => ({
         id: item.id,
@@ -158,7 +169,9 @@ export async function GET(request: NextRequest) {
         category: item.category,
         folderName: item.folder?.name,
         updatedAt: item.updatedAt,
-        image: item.images[0]?.filename
+        image: item.images[0]?.url,
+        thumbnailSmall: item.images[0]?.thumbnailSmall,
+        thumbnailMedium: item.images[0]?.thumbnailMedium
       }))
     }
 

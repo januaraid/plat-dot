@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -23,6 +23,8 @@ interface DashboardStats {
     createdAt: string
     updatedAt?: string
     image: string | null
+    thumbnailSmall?: string | null
+    thumbnailMedium?: string | null
   }[]
   recentUpdatedItems: {
     id: string
@@ -32,6 +34,8 @@ interface DashboardStats {
     createdAt: string
     updatedAt: string
     image: string | null
+    thumbnailSmall?: string | null
+    thumbnailMedium?: string | null
   }[]
 }
 
@@ -41,6 +45,27 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  
+  // 認証状態を安定化（一度認証されたら loading への変化を無視）
+  const authStateRef = useRef({ isAuthenticated: false, hasBeenAuthenticated: false })
+  
+  const isAuthenticated = useMemo(() => {
+    const currentAuth = status === 'authenticated' && session?.hasSession
+    if (currentAuth) {
+      authStateRef.current.hasBeenAuthenticated = true
+    }
+    // 一度認証されていて、現在loadingの場合は認証済みとして扱う
+    if (authStateRef.current.hasBeenAuthenticated && status === 'loading') {
+      return true
+    }
+    authStateRef.current.isAuthenticated = currentAuth
+    return currentAuth
+  }, [status, session?.hasSession])
+
+  const isAuthLoading = useMemo(() => {
+    // 一度も認証されていない場合のみloadingとして扱う
+    return status === 'loading' && !authStateRef.current.hasBeenAuthenticated
+  }, [status])
 
   const fetchStats = useCallback(async () => {
     try {
@@ -72,30 +97,32 @@ export default function DashboardPage() {
   // 認証チェック
   useEffect(() => {
     console.log('Dashboard: Auth check useEffect triggered', { 
-      status, 
-      hasSession: session?.hasSession,
-      sessionExists: !!session 
+      isAuthenticated,
+      isAuthLoading
     })
-    if (status !== 'loading' && (!session || !session.hasSession)) {
+    if (!isAuthLoading && !isAuthenticated) {
       console.log('Dashboard: Redirecting to home due to no session')
       router.replace('/')
     }
-  }, [status, session?.hasSession, router]) // sessionオブジェクト全体ではなく、hasSessionプロパティのみ監視
+  }, [isAuthenticated, isAuthLoading, router])
 
   // 統計データ取得（初回のみ）
   useEffect(() => {
     console.log('Dashboard: Stats fetch useEffect triggered', { 
-      status,
-      hasSession: session?.hasSession,
-      sessionExists: !!session 
+      isAuthenticated,
+      isAuthLoading,
+      hasStats: !!stats
     })
-    if (status === 'authenticated' && session && session.hasSession) {
+    // 既にデータ取得済みの場合は何もしない
+    if (stats) return
+    
+    if (isAuthenticated && !isAuthLoading) {
       console.log('Dashboard: Calling fetchStats()')
       fetchStats()
     }
-  }, [status, session?.hasSession]) // fetchStatsを依存配列から除外
+  }, [isAuthenticated, isAuthLoading]) // statsとfetchStatsを依存配列から除外
 
-  if (status === 'loading' || loading) {
+  if (isAuthLoading || loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -166,7 +193,7 @@ export default function DashboardPage() {
       <div className="flex items-center space-x-3">
         {item.image ? (
           <img
-            src={`/api/uploads/${item.image}`}
+            src={item.thumbnailSmall || item.image}
             alt={item.name}
             className="w-12 h-12 object-cover rounded-md"
           />

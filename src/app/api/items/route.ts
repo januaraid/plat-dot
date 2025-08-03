@@ -105,6 +105,9 @@ export async function GET(request: NextRequest) {
               id: true,
               url: true,
               order: true,
+              thumbnailSmall: true,
+              thumbnailMedium: true,
+              thumbnailLarge: true,
             },
             orderBy: {
               order: 'asc',
