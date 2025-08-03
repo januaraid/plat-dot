@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ユーザーIDを正規化
-    const normalizedUserId = await normalizeUserId(session.user.id, session.user.email)
+    const normalizedUserId = await normalizeUserId(session.user.id || '', session.user.email || '')
 
     // レート制限チェック
     if (!checkRateLimit(normalizedUserId)) {

@@ -385,7 +385,7 @@ export default function ItemsPage() {
       setItems(prevItems => 
         prevItems.map(item => 
           item.id === itemData.id 
-            ? { ...item, folder: targetFolderId ? { id: targetFolderId, name: result.moveDetails?.toFolder?.name || '' } : null, folderId: targetFolderId }
+            ? { ...item, folder: targetFolderId ? { id: targetFolderId, name: result.moveDetails?.toFolder?.name || '' } : undefined, folderId: targetFolderId || undefined }
             : item
         )
       )

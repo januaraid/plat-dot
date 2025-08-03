@@ -162,7 +162,7 @@ export function MainLayout({ children }: MainLayoutProps) {
           <Sidebar 
             isOpen={true} 
             onClose={() => {}} 
-            folderProps={folderProps} 
+            folderProps={folderProps as any} 
             isMinimized={isMinimized}
             onToggleMinimize={handleSidebarToggleMinimize}
           />
@@ -180,7 +180,7 @@ export function MainLayout({ children }: MainLayoutProps) {
 
       {/* Mobile sidebar - only shown when open */}
       <div className="md:hidden">
-        <Sidebar isOpen={isSidebarOpen} onClose={handleSidebarClose} folderProps={folderProps} />
+        <Sidebar isOpen={isSidebarOpen} onClose={handleSidebarClose} folderProps={folderProps as any} />
       </div>
 
       {/* Main content area */}

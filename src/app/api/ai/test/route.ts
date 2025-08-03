@@ -21,8 +21,7 @@ export async function GET(req: NextRequest) {
 
     // API接続テスト  
     const ai = new GoogleGenAI({ 
-      apiKey: process.env.GEMINI_API_KEY,
-      fetch: fetch
+      apiKey: process.env.GEMINI_API_KEY
     })
 
     const response = await ai.models.generateContent({
@@ -32,7 +31,7 @@ export async function GET(req: NextRequest) {
       ]
     })
 
-    const text = response.text.trim()
+    const text = response.text?.trim() || 'レスポンステキストが取得できませんでした'
     
     return Response.json({
       status: 'success',

@@ -102,8 +102,8 @@ export function Header({ onMenuToggle, isSidebarOpen }: HeaderProps) {
                 >
                   <img
                     className="h-8 w-8 rounded-full"
-                    src={session?.session?.user?.image || session?.user?.image || '/default-avatar.svg'}
-                    alt={session?.session?.user?.name || session?.user?.name || 'ユーザー'}
+                    src={session?.user?.image || '/default-avatar.svg'}
+                    alt={session?.user?.name || 'ユーザー'}
                   />
                 </button>
 
@@ -112,8 +112,8 @@ export function Header({ onMenuToggle, isSidebarOpen }: HeaderProps) {
                   <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
                     <div className="py-1">
                       <div className="px-4 py-2 text-sm text-gray-700 border-b">
-                        <div className="font-medium">{session?.session?.user?.name || session?.user?.name}</div>
-                        <div className="text-gray-500">{session?.session?.user?.email || session?.user?.email}</div>
+                        <div className="font-medium">{session?.user?.name}</div>
+                        <div className="text-gray-500">{session?.user?.email}</div>
                       </div>
                       <Link
                         href="/profile"

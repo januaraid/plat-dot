@@ -18,7 +18,7 @@ export function useFormPersistence({
   debounceMs = 300,
   saveFocus = false
 }: UseFormPersistenceOptions) {
-  const timeoutRef = useRef<NodeJS.Timeout>()
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   
   // Performance profiling
   usePerformanceProfiler('useFormPersistence')
@@ -133,7 +133,7 @@ export function useFormPersistence({
     return JSON.stringify(filteredData)
   }, [data, exclude])
   
-  const previousDataRef = useRef<string>()
+  const previousDataRef = useRef<string>('')
   
   // データが実際に変更された時の自動保存
   useEffect(() => {

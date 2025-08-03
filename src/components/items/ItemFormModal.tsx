@@ -59,9 +59,9 @@ export function ItemFormModal({
           name: item.name,
           description: item.description || '',
           category: item.category || '',
-          purchasePrice: item.price || '',
-          purchaseDate: '', // TODO: APIが対応したら item.purchaseDate に変更
-          purchaseLocation: item.location || '', // locationフィールドをマッピング
+          purchasePrice: item.purchasePrice || '',
+          purchaseDate: item.purchaseDate || '',
+          purchaseLocation: item.purchaseLocation || '',
           condition: '', // TODO: APIが対応したら追加
           notes: '', // TODO: APIが対応したら追加
           folderId: item.folder?.id || ''

@@ -252,7 +252,7 @@ export const FolderTree = forwardRef<FolderTreeHandle, FolderTreeProps>(({
       const parentFolder = folders.find(f => f.id === parentId)
       if (!parentFolder) return false
       
-      return isDescendant(parentFolder.parentId, childId)
+      return isDescendant(parentFolder.parentId || null, childId)
     }
     
     if (isDescendant(draggingFolderId, targetFolderId)) {
@@ -421,7 +421,7 @@ export const FolderTree = forwardRef<FolderTreeHandle, FolderTreeProps>(({
           {/* フォルダアクション - 絶対配置 */}
           {(isHovered || isSelected) && (
             <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white rounded shadow-sm">
-              {onFolderCreate && folder.depth < 3 && (
+              {onFolderCreate && (folder.depth || 0) < 3 && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
@@ -555,3 +555,5 @@ export const FolderTree = forwardRef<FolderTreeHandle, FolderTreeProps>(({
     </div>
   )
 })
+
+FolderTree.displayName = 'FolderTree'

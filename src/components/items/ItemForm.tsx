@@ -317,42 +317,13 @@ export const ItemForm = memo(function ItemForm({
         folderId: formData.folderId || undefined
       }
 
-      const createdItem = await onSave(submitData)
+      await onSave(submitData)
       
-      // 新規作成時でプレビュー画像がある場合は、実際にアップロード
-      if (mode === 'create' && images.length > 0 && createdItem?.id) {
-        
-        for (const image of images) {
-          
-          if (image.isPreview && image.base64Data) {
-            try {
-              // Base64データからFileオブジェクトを再構築
-              const base64Response = await fetch(image.base64Data)
-              const blob = await base64Response.blob()
-              const file = new File([blob], image.filename, { type: image.mimeType })
-
-              const formData = new FormData()
-              formData.append('file', file)
-              formData.append('itemId', createdItem.id)
-              formData.append('order', image.order.toString())
-
-              const response = await fetch('/api/upload', {
-                method: 'POST',
-                body: formData,
-              })
-
-              if (!response.ok) {
-                const errorText = await response.text()
-              }
-            } catch (err) {
-              // エラーは無視して次の画像に進む
-            }
-          }
-        }
-        
-        // アップロード完了後にプレビュー画像をクリア
-        const currentUrl = window.location.pathname + window.location.search
-        localStorage.removeItem(`item-images-preview-${currentUrl}`)
+      // 新規作成時でプレビュー画像がある場合は、実際にアップロードは別途処理が必要
+      // TODO: 作成されたアイテムIDを取得して画像をアップロードする機能
+      if (mode === 'create' && images.length > 0) {
+        // 現状は画像アップロード機能をスキップ（将来実装予定）
+        console.log('新規作成時の画像アップロード処理をスキップしました')
       }
       
       // 成功時はローカルストレージをクリアしてからリダイレクト
@@ -703,7 +674,7 @@ export const ItemForm = memo(function ItemForm({
                         商品名候補 ({aiRecognitionResult.data.suggestions.length}件)
                       </p>
                       <div className="grid gap-2">
-                        {aiRecognitionResult.data.suggestions.filter(s => s && typeof s === 'string' && s.trim()).map((suggestion: string, index: number) => (
+                        {aiRecognitionResult.data.suggestions.filter((s: any) => s && typeof s === 'string' && s.trim()).map((suggestion: string, index: number) => (
                           <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded border">
                             <span className="text-sm text-gray-700 flex-1 mr-2">{suggestion}</span>
                             <div className="flex space-x-1">
@@ -727,7 +698,7 @@ export const ItemForm = memo(function ItemForm({
                                 type="button"
                                 onClick={() => {
                                   // 拒否された提案を非表示にする
-                                  setAiRecognitionResult(prev => ({
+                                  setAiRecognitionResult((prev: any) => ({
                                     ...prev,
                                     data: {
                                       ...prev.data,
@@ -777,7 +748,7 @@ export const ItemForm = memo(function ItemForm({
                           <button
                             type="button"
                             onClick={() => {
-                              setAiRecognitionResult(prev => ({
+                              setAiRecognitionResult((prev: any) => ({
                                 ...prev,
                                 data: {
                                   ...prev.data,
@@ -824,7 +795,7 @@ export const ItemForm = memo(function ItemForm({
                           <button
                             type="button"
                             onClick={() => {
-                              setAiRecognitionResult(prev => ({
+                              setAiRecognitionResult((prev: any) => ({
                                 ...prev,
                                 data: {
                                   ...prev.data,
@@ -875,7 +846,7 @@ export const ItemForm = memo(function ItemForm({
                           <button
                             type="button"
                             onClick={() => {
-                              setAiRecognitionResult(prev => ({
+                              setAiRecognitionResult((prev: any) => ({
                                 ...prev,
                                 data: {
                                   ...prev.data,

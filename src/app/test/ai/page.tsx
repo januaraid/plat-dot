@@ -66,22 +66,7 @@ const AITestPage = memo(function AITestPage() {
     return status === 'loading' && !authStateRef.current.hasBeenAuthenticated
   }, [status])
 
-  // 未ログインの場合はトップページにリダイレクト
-  useEffect(() => {
-    if (!isAuthLoading && !isAuthenticated) {
-      router.replace('/')
-    }
-  }, [isAuthenticated, isAuthLoading, router])
-
-  // 認証チェック中はローディング表示
-  if (isAuthLoading || !isAuthenticated) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    )
-  }
-
+  // すべてのuseCallbackを最上位に移動
   const testConnection = useCallback(async () => {
     setLoading(prev => ({ ...prev, connection: true }))
     try {
@@ -97,6 +82,18 @@ const AITestPage = memo(function AITestPage() {
       })
     }
     setLoading(prev => ({ ...prev, connection: false }))
+  }, [])
+
+  const handleFileSelectClick = useCallback(() => {
+    console.log('File select button clicked')
+    const fileInput = document.getElementById('ai-test-file-input') as HTMLInputElement
+    console.log('File input element:', fileInput)
+    if (fileInput) {
+      console.log('Triggering file input click')
+      fileInput.click()
+    } else {
+      console.error('File input element not found')
+    }
   }, [])
 
   const checkUsage = useCallback(async () => {
@@ -228,6 +225,22 @@ const AITestPage = memo(function AITestPage() {
     }
   }, [testImageFile])
 
+  // 未ログインの場合はトップページにリダイレクト
+  useEffect(() => {
+    if (!isAuthLoading && !isAuthenticated) {
+      router.replace('/')
+    }
+  }, [isAuthenticated, isAuthLoading, router])
+
+  // 認証チェック中はローディング表示
+  if (isAuthLoading || !isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
+
   return (
     <div className="container mx-auto p-8">
       <div className="mb-6">
@@ -358,17 +371,7 @@ const AITestPage = memo(function AITestPage() {
                   画像をドラッグ&ドロップするか、
                   <button
                     type="button"
-                    onClick={useCallback(() => {
-                      console.log('File select button clicked')
-                      const fileInput = document.getElementById('ai-test-file-input') as HTMLInputElement
-                      console.log('File input element:', fileInput)
-                      if (fileInput) {
-                        console.log('Triggering file input click')
-                        fileInput.click()
-                      } else {
-                        console.error('File input element not found')
-                      }
-                    }, [])}
+                    onClick={handleFileSelectClick}
                     className="text-purple-500 hover:text-purple-600 underline ml-1"
                   >
                     ファイルを選択

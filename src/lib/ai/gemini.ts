@@ -6,8 +6,7 @@ import { prisma } from '@/lib/db'
  */
 function getAIClient() {
   return new GoogleGenAI({ 
-    apiKey: process.env.GEMINI_API_KEY!,
-    fetch: fetch
+    apiKey: process.env.GEMINI_API_KEY!
   })
 }
 
@@ -59,7 +58,7 @@ export async function recognizeItemFromImage(imageBase64: string): Promise<Recog
       ]
     })
     
-    const text = response.text.trim()
+    const text = response.text?.trim() || ''
     if (!text) {
       throw new Error('AI応答が空です')
     }
@@ -76,7 +75,7 @@ export async function recognizeItemFromImage(imageBase64: string): Promise<Recog
       const parsed = JSON.parse(jsonText)
       
       return {
-        suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions.filter(s => s && s.trim()) : [text.split('\n')[0] || '不明な商品'],
+        suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions.filter((s: any) => s && s.trim()) : [text.split('\n')[0] || '不明な商品'],
         category: parsed.category && parsed.category !== 'null' ? parsed.category : undefined,
         manufacturer: parsed.manufacturer && parsed.manufacturer !== 'null' ? parsed.manufacturer : undefined,
         description: parsed.description && parsed.description !== 'null' ? parsed.description : undefined
@@ -243,8 +242,8 @@ export async function searchItemPrices(itemName: string, manufacturer?: string):
       // データの検証と正規化
       const validatedPrices = Array.isArray(parsed.prices) 
         ? parsed.prices
-            .filter(price => price && typeof price === 'object')
-            .map(price => ({
+            .filter((price: any) => price && typeof price === 'object')
+            .map((price: any) => ({
               price: String(price.price || '価格不明'),
               site: String(price.site || '不明なサイト'),
               url: String(price.url || ''),

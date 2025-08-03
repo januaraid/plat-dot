@@ -187,7 +187,7 @@ export async function PUT(
         let currentParent = parentFolder.parent
         while (currentParent && depth < 3) {
           depth++
-          currentParent = currentParent.parent
+          currentParent = (currentParent as any).parent
         }
 
         if (depth >= 3) {

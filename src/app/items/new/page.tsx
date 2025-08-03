@@ -42,8 +42,7 @@ const NewItemPage = memo(function NewItemPage() {
   }, [isAuthenticated, isAuthLoading, router])
 
   const handleSave = async (itemData: any) => {
-    const createdItem = await createItem(itemData)
-    return createdItem
+    await createItem(itemData)
   }
 
   // 認証チェック中のローディング

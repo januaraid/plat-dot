@@ -11,8 +11,8 @@ const trimmedOptionalString = (maxLength?: number, fieldName?: string) => {
     .optional()
   
   if (maxLength && fieldName) {
-    schema = schema.refine(
-      val => !val || val.length <= maxLength,
+    schema = (schema as any).refine(
+      (val: any) => !val || val.length <= maxLength,
       `${fieldName}は${maxLength}文字以内で入力してください`
     )
   }

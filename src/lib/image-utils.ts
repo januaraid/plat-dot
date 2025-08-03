@@ -118,7 +118,7 @@ export async function optimizeImage(
         quality,
         progressive: true,
       })
-      .withMetadata(false) // EXIF削除
+      .withMetadata({}) // EXIF削除
       .toFile(outputPath)
   } catch (error) {
     console.error('Failed to optimize image:', error)

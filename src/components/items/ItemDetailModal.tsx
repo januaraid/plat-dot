@@ -153,9 +153,9 @@ export function ItemDetailModal({
                   <h1 className="text-2xl font-bold text-gray-900 mb-2">
                     {item.name}
                   </h1>
-                  {formatPrice(item.price) && (
+                  {formatPrice(item.purchasePrice) && (
                     <div className="text-3xl font-bold text-green-600 mb-4">
-                      {formatPrice(item.price)}
+                      {formatPrice(item.purchasePrice)}
                     </div>
                   )}
                 </div>
@@ -171,10 +171,6 @@ export function ItemDetailModal({
 
                 {/* Details grid */}
                 <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <dt className="font-medium text-gray-900">数量</dt>
-                    <dd className="text-gray-700">{item.quantity}</dd>
-                  </div>
                   
                   {item.category && (
                     <div>
@@ -187,10 +183,10 @@ export function ItemDetailModal({
                     </div>
                   )}
                   
-                  {item.location && (
+                  {item.purchaseLocation && (
                     <div>
-                      <dt className="font-medium text-gray-900">保管場所</dt>
-                      <dd className="text-gray-700">{item.location}</dd>
+                      <dt className="font-medium text-gray-900">購入場所</dt>
+                      <dd className="text-gray-700">{item.purchaseLocation}</dd>
                     </div>
                   )}
                   

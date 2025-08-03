@@ -349,7 +349,7 @@ export default function ImagesTestPage() {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {(isReordering ? reorderData.sort((a, b) => a.order - b.order) : images).map((imageData) => {
                   const image = isReordering 
-                    ? images.find(img => img.id === imageData.imageId)!
+                    ? images.find(img => img.id === (imageData as any).imageId)!
                     : imageData as ItemImage
 
                   return (

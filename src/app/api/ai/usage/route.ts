@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
     }
 
     // ユーザーIDを正規化
-    const normalizedUserId = await normalizeUserId(session.user.id, session.user.email)
+    const normalizedUserId = await normalizeUserId(session.user.id || '', session.user.email || '')
     console.log('Normalized user ID:', normalizedUserId)
     
     // AI使用状況を取得
