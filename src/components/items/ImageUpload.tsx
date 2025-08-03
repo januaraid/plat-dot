@@ -191,6 +191,7 @@ function ImageUploadComponent({
     const files = e.target.files
     if (files && files.length > 0) {
       handleFiles(files)
+    }
     
     // ファイル選択をリセット
     if (fileInputRef.current) {

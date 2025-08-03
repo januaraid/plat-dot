@@ -110,6 +110,23 @@ export async function GET(request: NextRequest) {
               order: 'asc',
             },
           },
+          priceHistory: {
+            where: {
+              isActive: true,
+            },
+            orderBy: {
+              searchDate: 'desc',
+            },
+            take: 1,
+            select: {
+              id: true,
+              searchDate: true,
+              minPrice: true,
+              avgPrice: true,
+              maxPrice: true,
+              listingCount: true,
+            },
+          },
         },
       }),
       prisma.item.count({ where }),

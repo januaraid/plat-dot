@@ -164,63 +164,124 @@ export async function searchItemPrices(itemName: string, manufacturer?: string):
   summary: string
 }> {
   try {
-    const searchQuery = manufacturer 
-      ? `${manufacturer} ${itemName} 価格 中古 フリマ メルカリ ヤフオク`
-      : `${itemName} 価格 中古 フリマ メルカリ ヤフオク`
-
     const ai = getAIClient()
+    
+    // 検索クエリを最適化
+    const productIdentifier = manufacturer ? `${manufacturer} ${itemName}` : itemName
+    
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-lite',
+      model: 'gemini-2.5-flash',
       contents: [
-        `以下の商品の価格情報を検索して、日本のフリマサイトやオークションサイトでの相場を調べてください：
+        `商品「${productIdentifier}」の中古品・新品の現在の相場価格を調査してください。
 
-商品名: ${itemName}
-${manufacturer ? `メーカー: ${manufacturer}` : ''}
+以下の日本の主要な売買サイトでの実際の販売価格を検索して分析してください：
+- メルカリ
+- ヤフオク  
+- ラクマ
+- Amazon（中古品）
+- 楽天市場（中古品）
 
-以下の形式でJSONで返してください：
+検索結果から、以下の条件で価格情報を抽出してください：
+1. 実際に出品・販売されている商品の価格
+2. 商品状態が明記されているもの
+3. 信頼できる出品者からの情報
+4. 最近の出品（できれば1ヶ月以内）
+
+以下のJSON形式で回答してください：
 {
   "prices": [
     {
-      "price": "価格（例：¥1,500）",
-      "site": "サイト名（例：メルカリ、ヤフオク）",
-      "url": "商品ページURL",
-      "condition": "商品状態（例：中古、新品）"
+      "price": "価格（例：¥2,980）",
+      "site": "サイト名",
+      "url": "商品ページのURL",
+      "condition": "商品状態（新品/中古/ジャンク等）"
     }
   ],
-  "summary": "価格相場の概要（例：中古品で1,000円〜3,000円程度が相場です）"
+  "summary": "価格相場の詳細な分析（以下の形式で記載）\n・平均価格: ¥X,XXX\n・価格帯: ¥X,XXX〜¥X,XXX\n・状態別価格: 新品¥X,XXX、中古¥X,XXX\n・市場動向: 詳細な分析"
 }
 
-注意事項：
-- 実際の検索結果から最新の価格情報を取得してください
-- 複数のサイト（メルカリ、ヤフオク、ラクマなど）の情報を含めてください
-- 価格は日本円で表示してください
-- 必ずJSON形式で回答してください`
+重要な指示：
+- 検索結果が見つからない場合でも、空の配列を返してください
+- 価格は必ず日本円（¥記号付き）で記載してください
+- summaryは以下の要素を含む読みやすい形式で記載してください：
+  * 平均価格（例：平均価格: ¥8,500）
+  * 価格帯（例：価格帯: ¥3,000〜¥15,000）
+  * 状態別価格（例：新品: ¥12,000前後、中古良品: ¥8,000前後）
+  * 市場の傾向（例：メルカリでの出品が多く、相場は安定しています）
+- 各項目を改行（\n）で区切って見やすく整理してください
+- 必ず有効なJSONフォーマットで回答してください`
       ],
       config: {
         tools: [{
-          googleSearchRetrieval: {
-            dynamicRetrievalConfig: {
-              mode: 'MODE_DYNAMIC',
-              dynamicThreshold: 0.7
-            }
-          }
+          googleSearch: {}
         }]
       }
     })
     
-    const text = response.text.trim()
+    const text = response.text?.trim()
     if (!text) {
       throw new Error('AI応答が空です')
     }
 
+    // JSON部分を抽出する（マークダウンコードブロック等を除去）
+    let jsonText = text
+    const jsonMatch = text.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/)
+    if (jsonMatch) {
+      jsonText = jsonMatch[1]
+    } else {
+      // マークダウン形式でない場合、最初と最後の{}を探す
+      const startIndex = text.indexOf('{')
+      const lastIndex = text.lastIndexOf('}')
+      if (startIndex !== -1 && lastIndex !== -1 && lastIndex > startIndex) {
+        jsonText = text.substring(startIndex, lastIndex + 1)
+      }
+    }
+
     try {
-      const parsed = JSON.parse(text)
+      const parsed = JSON.parse(jsonText)
+      
+      // データの検証と正規化
+      const validatedPrices = Array.isArray(parsed.prices) 
+        ? parsed.prices
+            .filter(price => price && typeof price === 'object')
+            .map(price => ({
+              price: String(price.price || '価格不明'),
+              site: String(price.site || '不明なサイト'),
+              url: String(price.url || ''),
+              condition: String(price.condition || '状態不明')
+            }))
+        : []
+
+      const summary = typeof parsed.summary === 'string' && parsed.summary.trim() 
+        ? parsed.summary.trim()
+        : validatedPrices.length > 0 
+          ? `${validatedPrices.length}件の価格情報を取得しました`
+          : '価格情報を取得できませんでした'
+
       return {
-        prices: Array.isArray(parsed.prices) ? parsed.prices : [],
-        summary: parsed.summary || '価格情報を取得できませんでした'
+        prices: validatedPrices,
+        summary
       }
     } catch (parseError) {
       console.warn('JSON解析失敗、フォールバック処理:', parseError)
+      console.warn('解析対象テキスト:', jsonText)
+      
+      // フォールバック：テキストから価格情報を抽出する試み
+      const priceRegex = /¥[\d,]+/g
+      const foundPrices = text.match(priceRegex) || []
+      
+      if (foundPrices.length > 0) {
+        return {
+          prices: foundPrices.slice(0, 5).map((price, index) => ({
+            price,
+            site: '検索結果より',
+            url: '',
+            condition: '詳細不明'
+          })),
+          summary: `テキスト解析により${foundPrices.length}件の価格を発見しました: ${foundPrices.slice(0, 3).join(', ')}など`
+        }
+      }
+
       return {
         prices: [],
         summary: text.length > 200 ? text.substring(0, 200) + '...' : text
@@ -228,7 +289,19 @@ ${manufacturer ? `メーカー: ${manufacturer}` : ''}
     }
   } catch (error) {
     console.error('価格検索エラー:', error)
-    throw new Error('価格検索に失敗しました')
+    
+    // より具体的なエラーメッセージを提供
+    if (error instanceof Error) {
+      if (error.message.includes('quota') || error.message.includes('limit')) {
+        throw new Error('APIの利用制限に達しました。しばらく時間をおいてから再度お試しください。')
+      } else if (error.message.includes('network') || error.message.includes('timeout')) {
+        throw new Error('ネットワークエラーが発生しました。インターネット接続を確認してください。')
+      } else if (error.message.includes('auth') || error.message.includes('key')) {
+        throw new Error('API認証エラーが発生しました。設定を確認してください。')
+      }
+    }
+    
+    throw new Error('価格検索に失敗しました。しばらく時間をおいてから再度お試しください。')
   }
 }
 
@@ -236,7 +309,7 @@ ${manufacturer ? `メーカー: ${manufacturer}` : ''}
  * 価格検索結果をデータベースに保存する
  * @param itemId アイテムID
  * @param searchResult 価格検索結果
- * @param userId ユーザーID
+ * @param userEmail ユーザーEmail
  */
 export async function savePriceHistory(
   itemId: string, 
@@ -249,7 +322,7 @@ export async function savePriceHistory(
     }>
     summary: string
   },
-  userId: string
+  userEmail: string
 ) {
   try {
     // 価格から数値を抽出してmin/max/avgを計算
@@ -271,9 +344,9 @@ export async function savePriceHistory(
       data: {
         itemId,
         source: 'AI検索',
-        minPrice: minPrice ? minPrice.toString() : null,
-        avgPrice: avgPrice ? avgPrice.toString() : null,
-        maxPrice: maxPrice ? maxPrice.toString() : null,
+        minPrice: minPrice,
+        avgPrice: avgPrice,
+        maxPrice: maxPrice,
         listingCount: searchResult.prices.length,
         summary: searchResult.summary,
         priceDetails: {
@@ -301,18 +374,20 @@ export async function savePriceHistory(
 /**
  * アイテムの価格推移を取得する
  * @param itemId アイテムID
- * @param userId ユーザーID
+ * @param userEmail ユーザーEmail
  * @param limit 取得件数（デフォルト: 10）
  */
-export async function getPriceHistory(itemId: string, userId: string, limit: number = 10) {
+export async function getPriceHistory(itemId: string, userEmail: string, limit: number = 10) {
   try {
     const history = await prisma.priceHistory.findMany({
       where: {
         itemId,
+        isActive: true,  // アクティブな履歴のみ取得
         item: {
-          userId
-        },
-        isActive: true
+          user: {
+            email: userEmail
+          }
+        }
       },
       include: {
         priceDetails: true

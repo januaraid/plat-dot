@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect, use, useRef, useMemo, memo } from 'react'
+import { useState, useEffect, use, useRef, useMemo, memo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { Item } from '@/components/items/ItemCard'
 import { UploadedImage } from '@/components/UploadedImage'
 import { useItems } from '@/hooks/useItems'
+import { PriceTrendChart } from '@/components/charts/PriceTrendChart'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -25,6 +26,11 @@ const ItemDetailPage = memo(function ItemDetailPage({ params }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [imageError, setImageError] = useState(false)
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
+  const [priceSearchLoading, setPriceSearchLoading] = useState(false)
+  const [priceSearchResult, setPriceSearchResult] = useState<any>(null)
+  const [priceHistory, setPriceHistory] = useState<any[]>([])
+  const [priceHistoryLoading, setPriceHistoryLoading] = useState(false)
+  const [priceHistoryLoaded, setPriceHistoryLoaded] = useState(false)
 
   // 認証状態を安定化（一度認証されたら loading への変化を無視）
   const authStateRef = useRef({ isAuthenticated: false, hasBeenAuthenticated: false })
@@ -114,6 +120,135 @@ const ItemDetailPage = memo(function ItemDetailPage({ params }: Props) {
     if (!dateString) return null
     return new Date(dateString).toLocaleDateString('ja-JP')
   }
+
+  // 価格履歴を取得（初回のみ）
+  const fetchPriceHistory = useCallback(async () => {
+    if (!item) return
+
+    try {
+      setPriceHistoryLoading(true)
+      const response = await fetch(`/api/items/${itemId}/price-history?limit=5`)
+      
+      if (!response.ok) {
+        throw new Error('価格履歴の取得に失敗しました')
+      }
+
+      const result = await response.json()
+      if (result.success) {
+        setPriceHistory(result.data)
+        setPriceHistoryLoaded(true)
+      }
+    } catch (error) {
+      console.error('価格履歴取得エラー:', error)
+    } finally {
+      setPriceHistoryLoading(false)
+    }
+  }, [item, itemId])
+
+  // 手動で価格履歴を更新
+  const refreshPriceHistory = useCallback(async () => {
+    if (!item) return
+
+    try {
+      setPriceHistoryLoading(true)
+      const response = await fetch(`/api/items/${itemId}/price-history?limit=5`)
+      
+      if (!response.ok) {
+        throw new Error('価格履歴の取得に失敗しました')
+      }
+
+      const result = await response.json()
+      if (result.success) {
+        setPriceHistory(result.data)
+      }
+    } catch (error) {
+      console.error('価格履歴取得エラー:', error)
+    } finally {
+      setPriceHistoryLoading(false)
+    }
+  }, [item, itemId])
+
+  // 価格履歴を削除
+  const deletePriceHistory = useCallback(async (historyId: string) => {
+    if (!item) return false
+
+    try {
+      const response = await fetch(`/api/items/${itemId}/price-history/${historyId}`, {
+        method: 'DELETE'
+      })
+
+      if (!response.ok) {
+        throw new Error('削除に失敗しました')
+      }
+
+      const result = await response.json()
+      if (!result.success) {
+        throw new Error(result.error || '削除に失敗しました')
+      }
+
+      // 成功したら価格履歴を再取得
+      refreshPriceHistory()
+      return true
+    } catch (error) {
+      console.error('価格履歴削除エラー:', error)
+      alert(error instanceof Error ? error.message : '削除中にエラーが発生しました')
+      return false
+    }
+  }, [item, itemId, refreshPriceHistory])
+
+  // AI価格調査を実行
+  const handlePriceSearch = useCallback(async () => {
+    if (!item || priceSearchLoading) return
+
+    try {
+      setPriceSearchLoading(true)
+      setPriceSearchResult(null)
+
+      const response = await fetch('/api/ai/search-prices', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          itemId: item.id,
+          itemName: item.name,
+          manufacturer: item.manufacturer
+        })
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`価格調査に失敗しました: ${response.status} ${errorText}`)
+      }
+
+      const result = await response.json()
+      
+      if (!result.success) {
+        throw new Error(result.error || '価格調査に失敗しました')
+      }
+
+      setPriceSearchResult(result.data)
+      // 価格履歴を再取得
+      refreshPriceHistory()
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : '価格調査中にエラーが発生しました'
+      setPriceSearchResult({
+        error: errorMessage,
+        prices: [],
+        summary: 'エラーが発生したため価格情報を取得できませんでした。'
+      })
+      console.error('価格調査エラー:', error)
+    } finally {
+      setPriceSearchLoading(false)
+    }
+  }, [item, refreshPriceHistory])
+
+  // アイテム詳細取得後に価格履歴も取得（初回のみ）
+  useEffect(() => {
+    if (item && !priceHistoryLoaded) {
+      fetchPriceHistory()
+    }
+  }, [item, priceHistoryLoaded, fetchPriceHistory])
 
   // 認証チェック中
   if (isAuthLoading || !isAuthenticated) {
@@ -359,14 +494,293 @@ const ItemDetailPage = memo(function ItemDetailPage({ params }: Props) {
         </div>
       </div>
 
-      {/* 今後の拡張エリア（AI機能など）*/}
-      <div className="bg-gray-50 rounded-lg p-4 lg:p-6">
-        <h3 className="text-base lg:text-lg font-semibold text-gray-900 mb-2 lg:mb-3">AI機能（今後実装予定）</h3>
-        <div className="text-xs lg:text-sm text-gray-500 space-y-1">
-          <p>・商品の価値査定</p>
-          <p>・類似商品の検索</p>
-          <p>・最適な保管方法の提案</p>
-          <p>・メンテナンス時期の通知</p>
+      {/* AI価格調査・履歴エリア */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div className="p-4 lg:p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base lg:text-lg font-semibold text-gray-900 flex items-center">
+              <svg className="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              AI価格調査
+            </h3>
+            <button
+              onClick={handlePriceSearch}
+              disabled={priceSearchLoading || !item}
+              className="inline-flex items-center px-4 py-2 border border-green-300 rounded-md shadow-sm text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 transition-all"
+            >
+              {priceSearchLoading ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-green-700" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  価格調査中...
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  価格を調査
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* 最新の価格調査結果 */}
+          {priceSearchResult && (
+            <div className={`mb-6 p-4 rounded-lg border ${
+              priceSearchResult.error 
+                ? 'bg-red-50 border-red-200'
+                : 'bg-gradient-to-r from-green-50 to-blue-50 border-green-200'
+            }`}>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className={`text-base font-semibold flex items-center ${
+                  priceSearchResult.error ? 'text-red-800' : 'text-green-800'
+                }`}>
+                  {priceSearchResult.error ? (
+                    <>
+                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.99-.833-2.76 0L3.054 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                      </svg>
+                      調査エラー
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      最新の調査結果
+                    </>
+                  )}
+                </h4>
+                <button
+                  type="button"
+                  onClick={() => setPriceSearchResult(null)}
+                  className="text-gray-400 hover:text-gray-600 p-1"
+                  title="調査結果を閉じる"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {priceSearchResult.error ? (
+                <p className="text-sm text-red-700">{priceSearchResult.error}</p>
+              ) : (
+                <div className="space-y-4">
+                  {/* 価格サマリー */}
+                  {priceSearchResult.summary && (
+                    <div className="bg-white p-3 rounded-md border border-gray-200">
+                      <div className="text-sm text-gray-700 leading-relaxed">
+                        {priceSearchResult.summary.split('\n').map((line: string, index: number) => (
+                          <div key={index} className={index > 0 ? 'mt-2' : ''}>
+                            {line}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 価格一覧 */}
+                  {priceSearchResult.prices && priceSearchResult.prices.length > 0 ? (
+                    <div className="bg-white rounded-md border border-gray-200 overflow-hidden">
+                      <div className="px-3 py-2 bg-gray-50 border-b border-gray-200">
+                        <h5 className="text-sm font-medium text-gray-900">
+                          価格情報 ({priceSearchResult.prices.length}件)
+                        </h5>
+                      </div>
+                      <div className="divide-y divide-gray-200 max-h-64 overflow-y-auto">
+                        {priceSearchResult.prices.map((price: any, index: number) => (
+                          <div key={index} className="p-3 hover:bg-gray-50">
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 truncate">
+                                  {price.price}
+                                </p>
+                                <div className="flex items-center space-x-2 mt-1">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                    {price.site}
+                                  </span>
+                                  {price.condition && (
+                                    <span className="text-xs text-gray-500">
+                                      {price.condition}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              {price.url && (
+                                <a
+                                  href={price.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="ml-2 inline-flex items-center px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-800"
+                                >
+                                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                  </svg>
+                                  詳細
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : !priceSearchResult.error && (
+                    <div className="bg-white rounded-md border border-gray-200 p-4 text-center">
+                      <svg className="mx-auto w-8 h-8 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <p className="text-sm text-gray-600 mb-1">価格情報が見つかりませんでした</p>
+                      <p className="text-xs text-gray-500">
+                        商品名やメーカー名を確認して、再度検索してみてください
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 価格履歴 */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-base font-semibold text-gray-900 flex items-center">
+                <svg className="w-4 h-4 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                価格履歴
+              </h4>
+              {priceHistory.length > 0 && (
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      refreshPriceHistory()
+                    }}
+                    disabled={priceHistoryLoading}
+                    className="text-xs text-blue-600 hover:text-blue-800 disabled:opacity-50"
+                  >
+                    {priceHistoryLoading ? '更新中...' : '更新'}
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      if (confirm(`${priceHistory.length}件の価格履歴をすべて削除してもよろしいですか？`)) {
+                        // 全履歴を順次削除
+                        Promise.all(priceHistory.map(history => deletePriceHistory(history.id)))
+                          .then(() => {
+                            console.log('全ての価格履歴を削除しました')
+                          })
+                          .catch(error => {
+                            console.error('一括削除エラー:', error)
+                          })
+                      }
+                    }}
+                    className="text-xs text-red-600 hover:text-red-800"
+                    title="全ての履歴を削除"
+                  >
+                    全削除
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {priceHistoryLoading ? (
+              <div className="flex items-center justify-center p-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+              </div>
+            ) : priceHistory.length > 0 ? (
+              <div className="bg-gray-50 rounded-md border border-gray-200 overflow-hidden">
+                <div className="divide-y divide-gray-200 max-h-80 overflow-y-auto">
+                  {priceHistory.map((history: any, index: number) => (
+                    <div key={history.id} className="p-3 hover:bg-white transition-colors relative group">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-xs text-gray-500">
+                          {formatDate(history.searchDate)}
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          {history.avgPrice && (
+                            <span className="text-sm font-medium text-gray-900">
+                              平均: ¥{Number(history.avgPrice).toLocaleString()}
+                            </span>
+                          )}
+                          {history.listingCount > 0 && (
+                            <span className="text-xs text-gray-500">
+                              {history.listingCount}件
+                            </span>
+                          )}
+                          {/* 削除ボタン */}
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              if (confirm('この価格調査履歴を削除してもよろしいですか？')) {
+                                deletePriceHistory(history.id)
+                              }
+                            }}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-red-100 text-red-600"
+                            title="この履歴を削除"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                      {history.summary && (
+                        <div className="text-xs text-gray-600 leading-relaxed">
+                          {history.summary.split('\n').map((line: string, index: number) => (
+                            <div key={index} className={index > 0 ? 'mt-1' : ''}>
+                              {line}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {(history.details || history.priceDetails) && (history.details || history.priceDetails).length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {(history.details || history.priceDetails).slice(0, 3).map((detail: any, i: number) => (
+                            <span key={i} className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-700">
+                              {detail.site}: {detail.price}
+                            </span>
+                          ))}
+                          {(history.details || history.priceDetails).length > 3 && (
+                            <span className="text-xs text-gray-500">
+                              +{(history.details || history.priceDetails).length - 3}件
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8 bg-gray-50 rounded-md border border-gray-200">
+                <svg className="mx-auto w-8 h-8 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                <p className="text-sm text-gray-500">
+                  まだ価格調査を行っていません
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  「価格を調査」ボタンをクリックして相場を確認しましょう
+                </p>
+              </div>
+            )}
+
+            {/* 価格推移グラフ */}
+            {priceHistory.length > 0 && (
+              <div className="mt-6">
+                <PriceTrendChart priceHistory={priceHistory} />
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
