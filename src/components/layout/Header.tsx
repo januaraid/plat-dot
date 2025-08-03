@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useSession, signOut, getSession } from 'next-auth/react'
+import { useSession, signOut } from 'next-auth/react'
 
 interface HeaderProps {
   onMenuToggle: () => void
@@ -16,6 +16,29 @@ export function Header({ onMenuToggle, isSidebarOpen }: HeaderProps) {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   
   const isLandingPage = pathname === '/'
+
+
+  // 認証状態を安定化（一度認証されたら loading への変化を無視）
+  const authStateRef = useRef({ isAuthenticated: false, hasBeenAuthenticated: false })
+  
+  const isAuthenticated = useMemo(() => {
+    const currentAuth = status === 'authenticated' && session?.hasSession
+    if (currentAuth) {
+      authStateRef.current.hasBeenAuthenticated = true
+    }
+    // 一度認証されていて、現在loadingの場合は認証済みとして扱う
+    if (authStateRef.current.hasBeenAuthenticated && status === 'loading') {
+      return true
+    }
+    authStateRef.current.isAuthenticated = currentAuth
+    return currentAuth
+  }, [status, session?.hasSession])
+
+  const isAuthLoading = useMemo(() => {
+    // 一度も認証されていない場合のみloadingとして扱う
+    return status === 'loading' && !authStateRef.current.hasBeenAuthenticated
+  }, [status])
+
 
   // ページフォーカス時にセッション状態を更新（頻度制限付き）
   useEffect(() => {
@@ -97,11 +120,11 @@ export function Header({ onMenuToggle, isSidebarOpen }: HeaderProps) {
 
           {/* Right side - User menu */}
           <div className="flex items-center space-x-4">
-            {status === 'loading' ? (
+            {isAuthLoading ? (
               <div className="animate-pulse">
                 <div className="w-8 h-8 bg-gray-300 rounded-full"></div>
               </div>
-            ) : status === 'authenticated' && session && 'hasSession' in session && session.hasSession ? (
+            ) : isAuthenticated ? (
               <div className="relative">
                 <button
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
@@ -112,6 +135,9 @@ export function Header({ onMenuToggle, isSidebarOpen }: HeaderProps) {
                     className="h-8 w-8 rounded-full"
                     src={session?.user?.image || '/default-avatar.svg'}
                     alt={session?.user?.name || 'ユーザー'}
+                    onError={(e) => {
+                      e.currentTarget.src = '/default-avatar.svg'
+                    }}
                   />
                 </button>
 

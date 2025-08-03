@@ -46,21 +46,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return token
     },
     async session({ session, token }) {
+      
       if (session.user) {
         // メールアドレスをユーザーIDとして使用（一貫性を保つ）
         if (token.userId) {
           session.user.id = token.userId as string
         }
         
-        // トークンからユーザー情報を復元（元の情報を保持）
-        // NextAuth.jsのデフォルト動作を優先し、トークンからの情報は補完のみ
-        if (token.email && !session.user.email) {
+        // トークンからユーザー情報を復元（トークンの値を確実に適用）
+        if (token.email) {
           session.user.email = token.email as string
         }
-        if (token.name && !session.user.name) {
+        if (token.name) {
           session.user.name = token.name as string
         }
-        if (token.image && !session.user.image) {
+        if (token.image) {
           session.user.image = token.image as string
         }
         
@@ -72,6 +72,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       
       // セッションが有効であることを示すフラグを追加
       session.hasSession = true
+      
+      
       return session
     },
   },

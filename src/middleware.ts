@@ -6,6 +6,7 @@ import { checkRateLimit, rateLimitErrorResponse } from "@/lib/rate-limit"
 export default auth((req) => {
   const isLoggedIn = !!req.auth
   const { nextUrl } = req
+  
 
   // HTTPS強制
   const httpsRedirect = enforceHTTPS(req)

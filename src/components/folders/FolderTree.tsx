@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useImperativeHandle, forwardRef, useRef } from 'react'
+import { useState, useEffect, useCallback, useImperativeHandle, forwardRef, useRef, useMemo } from 'react'
 import { useSession } from 'next-auth/react'
 import { usePerformanceProfiler } from '@/hooks/usePerformanceProfiler'
 // SVGアイコンコンポーネント
@@ -75,10 +75,26 @@ export const FolderTree = forwardRef<FolderTreeHandle, FolderTreeProps>(({
   // Performance profiling
   usePerformanceProfiler('FolderTree')
   
-  // セッション変更のデバッグ - statusとhasSessionのみを監視
-  useEffect(() => {
-    // セッション状態の変更をトラッキング（デバッグログは削除済み）
-  }, [status, session?.hasSession]) // sessionオブジェクト全体ではなく必要なプロパティのみ監視
+  // 認証状態を安定化（一度認証されたら loading への変化を無視）
+  const authStateRef = useRef({ isAuthenticated: false, hasBeenAuthenticated: false })
+  
+  const isAuthenticated = useMemo(() => {
+    const currentAuth = status === 'authenticated' && session?.hasSession
+    if (currentAuth) {
+      authStateRef.current.hasBeenAuthenticated = true
+    }
+    // 一度認証されていて、現在loadingの場合は認証済みとして扱う
+    if (authStateRef.current.hasBeenAuthenticated && status === 'loading') {
+      return true
+    }
+    authStateRef.current.isAuthenticated = currentAuth
+    return currentAuth
+  }, [status, session?.hasSession])
+
+  const isAuthLoading = useMemo(() => {
+    // 一度も認証されていない場合のみloadingとして扱う
+    return status === 'loading' && !authStateRef.current.hasBeenAuthenticated
+  }, [status])
   
   const [folders, setFolders] = useState<Folder[]>([])
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
@@ -88,15 +104,11 @@ export const FolderTree = forwardRef<FolderTreeHandle, FolderTreeProps>(({
   const [dragOverFolder, setDragOverFolder] = useState<string | null>(null)
   const [draggingFolder, setDraggingFolder] = useState<string | null>(null)
 
-  // 安定した参照を維持するためのフラグ
-  const isAuthenticated = status === 'authenticated' && session?.hasSession
-  const isLoading = status === 'loading'
-
   // フォルダツリーを取得
   const fetchFolders = useCallback(async () => {
     
     // 未ログインの場合は何もしない
-    if (isLoading) {
+    if (isAuthLoading) {
       return
     }
     if (!isAuthenticated) {
@@ -137,7 +149,7 @@ export const FolderTree = forwardRef<FolderTreeHandle, FolderTreeProps>(({
     } finally {
       setLoading(false)
     }
-  }, [isAuthenticated, isLoading]) // より安定した依存関係
+  }, [isAuthenticated, isAuthLoading]) // より安定した依存関係
 
   useEffect(() => {
     fetchFolders()

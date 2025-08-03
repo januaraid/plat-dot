@@ -37,10 +37,31 @@ const nextConfig = {
         protocol: 'https',
         hostname: '*.public.blob.vercel-storage.com',
         pathname: '/**',
+      },
+      // GoogleユーザープロフィールアイコンのURL
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh4.googleusercontent.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh5.googleusercontent.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh6.googleusercontent.com',
+        pathname: '/**',
       }
     ],
-    // 開発環境では画像最適化を無効化（アップロード画像対応のため）
-    unoptimized: process.env.NODE_ENV === 'development',
+    // 画像最適化を有効化（外部画像の読み込み改善のため）
+    unoptimized: false,
     // アップロード画像のサイズ制限を緩和
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],

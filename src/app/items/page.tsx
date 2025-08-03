@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { ItemGrid, ViewMode, GridColumns } from '@/components/items/ItemGrid'
@@ -35,12 +35,33 @@ export default function ItemsPage() {
   // Custom hooks for API operations
   const { deleteItem } = useItems()
 
+  // 認証状態を安定化（一度認証されたら loading への変化を無視）
+  const authStateRef = useRef({ isAuthenticated: false, hasBeenAuthenticated: false })
+  
+  const isAuthenticated = useMemo(() => {
+    const currentAuth = status === 'authenticated' && session?.hasSession
+    if (currentAuth) {
+      authStateRef.current.hasBeenAuthenticated = true
+    }
+    // 一度認証されていて、現在loadingの場合は認証済みとして扱う
+    if (authStateRef.current.hasBeenAuthenticated && status === 'loading') {
+      return true
+    }
+    authStateRef.current.isAuthenticated = currentAuth
+    return currentAuth
+  }, [status, session?.hasSession])
+
+  const isAuthLoading = useMemo(() => {
+    // 一度も認証されていない場合のみloadingとして扱う
+    return status === 'loading' && !authStateRef.current.hasBeenAuthenticated
+  }, [status])
+
   // 未ログインの場合はトップページにリダイレクト
   useEffect(() => {
-    if (status !== 'loading' && (!session || !session.hasSession)) {
+    if (!isAuthLoading && !isAuthenticated) {
       router.replace('/')
     }
-  }, [session, status, router])
+  }, [isAuthenticated, isAuthLoading, router])
   
   // State
   const [items, setItems] = useState<Item[]>([])
@@ -145,8 +166,8 @@ export default function ItemsPage() {
 
   // Fetch items function
   const fetchItems = useCallback(async () => {
-    if (status === 'loading') return
-    if (!session || !session.hasSession) {
+    if (isAuthLoading) return
+    if (!isAuthenticated) {
       setLoading(false)
       return
     }
@@ -186,20 +207,20 @@ export default function ItemsPage() {
     } finally {
       setLoading(false)
     }
-  }, [filters, session, status])
+  }, [filters, isAuthenticated, isAuthLoading])
 
   // Fetch items when localStorage is loaded and filters change
   useEffect(() => {
     // Wait for localStorage to be loaded before making API calls
     if (!isLocalStorageLoaded) return
-    if (status === 'loading') return
-    if (!session || !session.hasSession) {
+    if (isAuthLoading) return
+    if (!isAuthenticated) {
       setLoading(false)
       return
     }
     
     fetchItems()
-  }, [isLocalStorageLoaded, filters, session?.hasSession, status, fetchItems])
+  }, [isLocalStorageLoaded, filters, isAuthenticated, isAuthLoading, fetchItems])
 
   // Handlers
   const handleFiltersChange = (newFilters: FilterOptions) => {
@@ -495,16 +516,7 @@ export default function ItemsPage() {
   }, [selectedFolderId, handleFolderSelect, handleFolderCreate, handleFolderEdit, handleFolderDelete, handleItemDrop, handleFolderMove, setFolderProps])
 
   // Authentication check
-  if (status === 'loading') {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    )
-  }
-
-  // 未ログインの場合はリダイレクト処理中
-  if (!session || !session.hasSession) {
+  if (isAuthLoading || !isAuthenticated) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
