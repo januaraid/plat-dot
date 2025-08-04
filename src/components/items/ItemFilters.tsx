@@ -262,7 +262,7 @@ export function ItemFilters({
             <select
               value={filters.limit}
               onChange={(e) => handleFilterChange('limit', parseInt(e.target.value))}
-              className="form-select border border-gray-300 bg-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              className="form-select border border-gray-300 bg-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 w-20"
               disabled={loading}
             >
               <option value={12}>12件</option>
