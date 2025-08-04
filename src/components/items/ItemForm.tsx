@@ -1087,7 +1087,7 @@ export const ItemForm = memo(function ItemForm({
                   id="folder"
                   value={formData.folderId}
                   onChange={(e) => updateFormData('folderId', e.target.value)}
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2"
+                  className="block w-full form-select rounded-md border border-gray-300 bg-white shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2"
                   disabled={isDisabled}
                 >
                   <option value="">フォルダを選択</option>
@@ -1139,8 +1139,10 @@ export const ItemForm = memo(function ItemForm({
                   id="purchaseDate"
                   value={formData.purchaseDate}
                   onChange={(e) => updateFormData('purchaseDate', e.target.value)}
-                  className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 ${
-                    errors.purchaseDate ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''
+                  className={`block w-full rounded-md border shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 bg-white ${
+                    errors.purchaseDate 
+                      ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
+                      : 'border-gray-300'
                   }`}
                   max={new Date().toISOString().split('T')[0]}
                   disabled={isDisabled}
@@ -1176,7 +1178,7 @@ export const ItemForm = memo(function ItemForm({
                   id="condition"
                   value={formData.condition}
                   onChange={(e) => updateFormData('condition', e.target.value)}
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2"
+                  className="block w-full form-select rounded-md border border-gray-300 bg-white shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2"
                   disabled={isDisabled}
                 >
                   <option value="">状態を選択</option>
