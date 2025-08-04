@@ -126,60 +126,65 @@ export function ItemFilters({
       </div>
 
       {/* Filter controls */}
-      <div className="space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-between">
-        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center">
-          {/* Filter toggle button */}
-          <button
-            onClick={() => setIsFilterOpen(!isFilterOpen)}
-            className={`inline-flex items-center justify-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-              hasActiveFilters ? 'ring-2 ring-blue-500 border-blue-500' : ''
-            }`}
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-            </svg>
-            <span className="whitespace-nowrap">フィルター</span>
+      <div className="space-y-3">
+        <div className="flex flex-col sm:flex-row gap-3">
+          {/* フィルターボタン */}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className={`inline-flex items-center justify-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                hasActiveFilters ? 'ring-2 ring-blue-500 border-blue-500' : ''
+              }`}
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              <span className="whitespace-nowrap">フィルター</span>
+              {hasActiveFilters && (
+                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  適用中
+                </span>
+              )}
+            </button>
             {hasActiveFilters && (
-              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                適用中
-              </span>
+              <button
+                onClick={clearFilters}
+                className="text-sm text-gray-500 hover:text-gray-700 underline"
+              >
+                フィルターをクリア
+              </button>
             )}
-          </button>
-
-          {/* Sort selector */}
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-700 whitespace-nowrap hidden sm:block">並び順:</label>
+          </div>
+          
+          {/* 並び順セレクター */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <label className="text-sm font-medium text-gray-700 sm:whitespace-nowrap">並び順:</label>
             <select
               value={`${filters.sortBy}-${filters.sortOrder}`}
               onChange={(e) => {
                 const [sortBy, sortOrder] = e.target.value.split('-')
-                handleFilterChange('sortBy', sortBy)
-                handleFilterChange('sortOrder', sortOrder)
+                const newFilters = {
+                  ...filters,
+                  sortBy: sortBy as FilterOptions['sortBy'],
+                  sortOrder: sortOrder as FilterOptions['sortOrder'],
+                  page: 1,
+                }
+                onFiltersChange(newFilters)
               }}
-              className="flex-1 sm:flex-none border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              className="form-select border border-gray-300 bg-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 w-full sm:w-64"
               disabled={loading}
             >
-              <option value="createdAt-desc">作成日時（新しい順）</option>
-              <option value="createdAt-asc">作成日時（古い順）</option>
-              <option value="updatedAt-desc">更新日時（新しい順）</option>
-              <option value="updatedAt-asc">更新日時（古い順）</option>
-              <option value="name-asc">名前（A-Z）</option>
-              <option value="name-desc">名前（Z-A）</option>
-              <option value="price-desc">価格（高い順）</option>
-              <option value="price-asc">価格（安い順）</option>
-            </select>
+            <option value="createdAt-desc">作成日時（新しい順）</option>
+            <option value="createdAt-asc">作成日時（古い順）</option>
+            <option value="updatedAt-desc">更新日時（新しい順）</option>
+            <option value="updatedAt-asc">更新日時（古い順）</option>
+            <option value="name-asc">名前（A-Z）</option>
+            <option value="name-desc">名前（Z-A）</option>
+            <option value="price-desc">価格（高い順）</option>
+            <option value="price-asc">価格（安い順）</option>
+          </select>
           </div>
         </div>
-
-        {/* Clear filters */}
-        {hasActiveFilters && (
-          <button
-            onClick={clearFilters}
-            className="text-sm text-gray-500 hover:text-gray-700 underline sm:ml-4"
-          >
-            フィルターをクリア
-          </button>
-        )}
       </div>
 
       {/* Expanded filters */}
@@ -194,7 +199,7 @@ export function ItemFilters({
               <select
                 value={filters.category}
                 onChange={(e) => handleFilterChange('category', e.target.value)}
-                className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                className="block w-full form-select border border-gray-300 bg-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 disabled={loading}
               >
                 <option value="">すべてのカテゴリ</option>
@@ -214,7 +219,7 @@ export function ItemFilters({
               <select
                 value={filters.manufacturer}
                 onChange={(e) => handleFilterChange('manufacturer', e.target.value)}
-                className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                className="block w-full form-select border border-gray-300 bg-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 disabled={loading}
               >
                 <option value="">すべてのメーカー</option>
@@ -236,7 +241,7 @@ export function ItemFilters({
               <select
                 value={filters.folderId}
                 onChange={(e) => handleFilterChange('folderId', e.target.value)}
-                className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                className="block w-full form-select border border-gray-300 bg-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 disabled={loading}
               >
                 <option value="">すべてのフォルダ</option>
@@ -257,7 +262,7 @@ export function ItemFilters({
             <select
               value={filters.limit}
               onChange={(e) => handleFilterChange('limit', parseInt(e.target.value))}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              className="form-select border border-gray-300 bg-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
               disabled={loading}
             >
               <option value={12}>12件</option>

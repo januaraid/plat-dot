@@ -84,6 +84,9 @@ export async function GET(request: NextRequest) {
     // ページネーション計算
     const skip = (params.page - 1) * params.limit
 
+    // ソートフィールドの変換（priceの場合はpurchasePriceにマッピング）
+    const sortField = params.sort === 'price' ? 'purchasePrice' : params.sort
+
     // データ取得
     const [items, total, categories, folders, manufacturers] = await Promise.all([
       prisma.item.findMany({
@@ -91,7 +94,7 @@ export async function GET(request: NextRequest) {
         skip,
         take: params.limit,
         orderBy: {
-          [params.sort]: params.order,
+          [sortField]: params.order,
         },
         include: {
           folder: {

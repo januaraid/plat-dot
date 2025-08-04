@@ -187,6 +187,7 @@ export default function ItemsPage() {
         ...(filters.folderId && { folderId: filters.folderId }),
       })
 
+
       const response = await fetch(`/api/items?${params}`)
       
       if (!response.ok) {

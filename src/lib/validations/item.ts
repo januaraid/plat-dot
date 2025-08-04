@@ -219,11 +219,11 @@ export const searchItemsSchema = z.object({
   .optional()
   .default(20),
   
-  sort: z.enum(['createdAt', 'updatedAt', 'name', 'purchaseDate'], {
-    errorMap: () => ({ message: 'ソート項目は createdAt, updatedAt, name, purchaseDate のいずれかを指定してください' })
+  sort: z.enum(['createdAt', 'updatedAt', 'name', 'purchaseDate', 'price'], {
+    errorMap: () => ({ message: 'ソート項目は createdAt, updatedAt, name, purchaseDate, price のいずれかを指定してください' })
   })
   .optional()
-  .default('updatedAt'),
+  .default('createdAt'),
   
   order: z.enum(['asc', 'desc'], {
     errorMap: () => ({ message: 'ソート順は asc または desc を指定してください' })
